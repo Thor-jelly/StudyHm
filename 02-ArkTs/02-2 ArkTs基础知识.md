@@ -1281,16 +1281,34 @@ struct StateStylesSample {
 
 ![2-8](./pic/2-8.gif)
 
-![img](https://alliance-communityfile-drcn.dbankcdn.com/FileServer/getFile/cmtyPub/011/111/111/0000000000011111111.20240218102415.14876007736966622593359808812386:50001231000000:2800:9583C074BC3E4788E534CEF342817411F7AF873B5C9A3B4690D0B3E21EDD4F95.gif?needInitFileName=true?needInitFileName=true?needInitFileName=true)
-
 ### @Styles和stateStyles联合使用
 
-以下示例通过@Styles指定stateStyles的不同状态。
+以下示例通过`@Styles`指定`stateStyles`的不同状态。
 
 ```typescript
-@Entry@Componentstruct MyComponent {  @Styles normalStyle() {    .backgroundColor(Color.Gray)  }
-  @Styles pressedStyle() {    .backgroundColor(Color.Red)  }
-  build() {    Column() {      Text('Text1')        .fontSize(50)        .fontColor(Color.White)        .stateStyles({          normal: this.normalStyle,          pressed: this.pressedStyle,        })    }  }}
+@Entry
+@Component
+struct MyComponent {
+  @Styles normalStyle() {
+    .backgroundColor(Color.Gray)
+  }
+
+  @Styles pressedStyle() {
+    .backgroundColor(Color.Red)
+  }
+
+  build() {
+    Column() {
+      Text('Text1')
+        .fontSize(50)
+        .fontColor(Color.White)
+        .stateStyles({
+          normal: this.normalStyle,
+          pressed: this.pressedStyle,
+        })
+    }
+  }
+}
 ```
 
 **图2** 正常态和按压态
@@ -1299,14 +1317,36 @@ struct StateStylesSample {
 
 ### 在stateStyles里使用常规变量和状态变量
 
-stateStyles可以通过this绑定组件内的常规变量和状态变量。
+`stateStyles`可以通过`this`绑定组件内的常规变量和状态变量。
 
 ```typescript
-@Entry@Componentstruct CompWithInlineStateStyles {  @State focusedColor: Color = Color.Red;  normalColor: Color = Color.Green
-  build() {    Column() {      Button('clickMe').height(100).width(100)        .stateStyles({          normal: {            .backgroundColor(this.normalColor)          },          focused: {            .backgroundColor(this.focusedColor)          }        })        .onClick(() => {          this.focusedColor = Color.Pink        })        .margin('30%')    }  }}
+@Entry
+@Component
+struct CompWithInlineStateStyles {
+  @State focusedColor: Color = Color.Red;
+  normalColor: Color = Color.Green
+
+  build() {
+    Column() {
+      Button('clickMe').height(100).width(100)
+        .stateStyles({
+          normal: {
+            .backgroundColor(this.normalColor)
+          },
+          focused: {
+            .backgroundColor(this.focusedColor)
+          }
+        })
+        .onClick(() => {
+          this.focusedColor = Color.Pink
+        })
+        .margin('30%')
+    }
+  }
+}
 ```
 
-Button默认normal态显示绿色，第一次按下Tab键让Button获焦显示为focus态的红色，点击事件触发后，再次按下Tab键让Button获焦，focus态变为粉色。
+`Button`默认`normal`态显示绿色，第一次按下`Tab`键让`Button`获焦显示为`focus`态的红色，点击事件触发后，再次按下`Tab`键让`Button`获焦，`focus`态变为粉色。
 
 **图3** 点击改变获焦态样式
 
