@@ -548,36 +548,94 @@ struct MyComponent {
 
 #### 自定义组件重新渲染
 
-当事件句柄被触发（比如设置了点击事件，即触发点击事件）改变了状态变量时，或者LocalStorage / AppStorage中的属性更改，并导致绑定的状态变量更改其值时：
+当事件句柄被触发（比如设置了点击事件，即触发点击事件）改变了状态变量时，或者`LocalStorage / AppStorage`中的属性更改，并导致绑定的状态变量更改其值时：
 
 1. 框架观察到了变化，将启动重新渲染。
 2. 根据框架持有的两个map（自定义组件的创建和渲染流程中第4步），框架可以知道该状态变量管理了哪些UI组件，以及这些UI组件对应的更新函数。执行这些UI组件的更新函数，实现最小化更新。
 
 #### 自定义组件的删除
 
-如果if组件的分支改变，或者ForEach循环渲染中数组的个数改变，组件将被删除：
+如果`if`组件的分支改变，或者`ForEach`循环渲染中数组的个数改变，组件将被删除：
 
 1. 在删除组件之前，将调用其aboutToDisappear生命周期函数，标记着该节点将要被销毁。ArkUI的节点删除机制是：后端节点直接从组件树上摘下，后端节点被销毁，对前端节点解引用，前端节点已经没有引用时，将被JS虚拟机垃圾回收。
 2. 自定义组件和它的变量将被删除，如果其有同步的变量，比如[@Link](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-link-0000001524297305-V2)、[@Prop](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-page-custom-components-lifecycle-0000001524296665-V2)、[@StorageLink](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-appstorage-0000001524417209-V2#section84115526424)，将从[同步源](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-state-management-overview-0000001524537145-V2#section127619262713)上取消注册。
 
-不建议在生命周期aboutToDisappear内使用async await，如果在生命周期的aboutToDisappear使用异步操作（Promise或者回调方法），自定义组件将被保留在Promise的闭包中，直到回调方法被执行完，这个行为阻止了自定义组件的垃圾回收。
+**不建议在生命周期aboutToDisappear内使用async await**，如果在生命周期的aboutToDisappear使用异步操作（Promise或者回调方法），自定义组件将被保留在Promise的闭包中，直到回调方法被执行完，这个行为阻止了自定义组件的垃圾回收。
 
 以下示例展示了生命周期的调用时机：
 
-```
-// Index.etsimport router from '@ohos.router';
-@Entry@Componentstruct MyComponent {  @State showChild: boolean = true;
-  // 只有被@Entry装饰的组件才可以调用页面的生命周期  onPageShow() {    console.info('Index onPageShow');  }  // 只有被@Entry装饰的组件才可以调用页面的生命周期  onPageHide() {    console.info('Index onPageHide');  }
-  // 只有被@Entry装饰的组件才可以调用页面的生命周期  onBackPress() {    console.info('Index onBackPress');  }
-  // 组件生命周期  aboutToAppear() {    console.info('MyComponent aboutToAppear');  }
-  // 组件生命周期  aboutToDisappear() {    console.info('MyComponent aboutToDisappear');  }
-  build() {    Column() {      // this.showChild为true，创建Child子组件，执行Child aboutToAppear      if (this.showChild) {        Child()      }      // this.showChild为false，删除Child子组件，执行Child aboutToDisappear      Button('delete Child').onClick(() => {        this.showChild = false;      })      // push到Page2页面，执行onPageHide      Button('push to next page')        .onClick(() => {          router.pushUrl({ url: 'pages/Page2' });        })    }
-  }}
-@Componentstruct Child {  @State title: string = 'Hello World';  // 组件生命周期  aboutToDisappear() {    console.info('[lifeCycle] Child aboutToDisappear')  }  // 组件生命周期  aboutToAppear() {    console.info('[lifeCycle] Child aboutToAppear')  }
-  build() {    Text(this.title).fontSize(50).onClick(() => {      this.title = 'Hello ArkUI';    })  }}
+```typescript
+// Index.ets
+import router from '@ohos.router';
+
+@Entry
+@Component
+struct MyComponent {
+  @State showChild: boolean = true;
+  
+  // 只有被@Entry装饰的组件才可以调用页面的生命周期
+  onPageShow() {
+    console.info('Index onPageShow');
+  }
+  // 只有被@Entry装饰的组件才可以调用页面的生命周期
+  onPageHide() {
+    console.info('Index onPageHide');
+  }
+  // 只有被@Entry装饰的组件才可以调用页面的生命周期
+  onBackPress() {
+    console.info('Index onBackPress');
+  }
+  
+  // 组件生命周期
+  aboutToAppear() {
+    console.info('MyComponent aboutToAppear');
+  }
+  // 组件生命周期
+  aboutToDisappear() {
+    console.info('MyComponent aboutToDisappear');
+  }
+  
+  build() {
+    Column() {
+      // this.showChild为true，创建Child子组件，执行Child aboutToAppear
+      if (this.showChild) {
+        Child()
+      } 
+      // this.showChild为false，删除Child子组件，执行Child aboutToDisappear
+      Button('delete Child').onClick(() => {
+        this.showChild = false;
+      })
+      // push到Page2页面，执行onPageHide
+      Button('push to next page')
+        .onClick(() => {
+       		 router.pushUrl({ url: 'pages/Page2' });
+      	})
+    }
+  }
+}
+
+@Component
+struct Child {
+  @State title: string = 'Hello World';
+  
+  // 组件生命周期
+  aboutToDisappear() {
+    console.info('[lifeCycle] Child aboutToDisappear')
+  }
+  // 组件生命周期
+  aboutToAppear() {
+    console.info('[lifeCycle] Child aboutToAppear')
+  }
+  
+  build() {
+    Text(this.title).fontSize(50).onClick(() => {
+      this.title = 'Hello ArkUI';
+    })
+  }
+}
 ```
 
-以上示例中，Index页面包含两个自定义组件，一个是被@Entry装饰的MyComponent，也是页面的入口组件，即页面的根节点；一个是Child，是MyComponent的子组件。只有@Entry装饰的节点才可以使页面级别的生命周期方法生效，所以MyComponent中声明了当前Index页面的页面生命周期函数。MyComponent和其子组件Child也同时也声明了组件的生命周期函数。
+以上示例中，`Index`页面包含两个自定义组件，一个是被`@Entry`装饰的`MyComponent`，也是页面的入口组件，即页面的根节点；一个是`Child`，是`MyComponent`的子组件。只有`@Entry`装饰的节点才可以使页面级别的生命周期方法生效，所以`MyComponent`中声明了当前`Index`页面的页面生命周期函数。`MyComponent`和其子组件`Child`也同时也声明了组件的生命周期函数。
 
 - 应用冷启动的初始化流程为：MyComponent aboutToAppear --> MyComponent build --> Child aboutToAppear --> Child build --> Child build执行完毕 --> MyComponent build执行完毕 --> Index onPageShow。
 - 点击“delete Child”，if绑定的this.showChild变成false，删除Child组件，会执行Child aboutToDisappear方法。
@@ -588,6 +646,675 @@ struct MyComponent {
 - 最小化应用或者应用进入后台，触发Index onPageHide。当前Index页面没有被销毁，所以并不会执行组件的aboutToDisappear。应用回到前台，执行Index onPageShow。
 
 - 退出应用，执行Index onPageHide --> MyComponent aboutToDisappear --> Child aboutToDisappear。
+
+### @Builder装饰器：自定义构建函数
+
+ArkUI还提供了一种更轻量的UI元素复用机制@Builder，@Builder所装饰的函数遵循build()函数语法规则，开发者可以将重复使用的UI元素抽象成一个方法，在build方法里调用。
+
+为了简化语言，我们将@Builder装饰的函数也称为“自定义构建函数”
+
+> 从API version 9开始，该装饰器支持在ArkTS卡片中使用。
+
+#### 装饰器使用说明
+
+##### 自定义组件内自定义构建函数
+
+定义的语法：
+
+```typescript
+@Builder MyBuilderFunction(){ ... }
+```
+
+使用方法：
+
+```typescript
+this.MyBuilderFunction()
+```
+
+- 允许在自定义组件内定义一个或多个@Builder方法，该方法被认为是该组件的私有、特殊类型的成员函数。
+- 自定义构建函数可以在所属组件的build方法和其他自定义构建函数中调用，但不允许在组件外调用。
+- 在自定义函数体中，`this`指代当前所属组件，组件的状态变量可以在自定义构建函数内访问。建议通过`this`访问自定义组件的状态变量而不是参数传递。
+
+##### 全局自定义构建函数
+
+定义的语法：
+
+```typescript
+@Builder function MyGlobalBuilderFunction(){ ... }
+```
+
+使用方法：
+
+```typescript
+MyGlobalBuilderFunction()
+```
+
+- 全局的自定义构建函数可以被整个应用获取，不允许使用`this`和`bind`方法。
+- 如果不涉及组件状态变化，建议使用全局的自定义构建方法。
+
+#### 参数传递规则
+
+自定义构建函数的参数传递有[按值传递](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-builder-0000001524176981-V2#section163841721135012)和[按引用传递](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-builder-0000001524176981-V2#section1522464044212)两种，均需遵守以下规则：
+
+- 参数的类型必须与参数声明的类型一致，不允许undefined、null和返回undefined、null的表达式。
+- 在自定义构建函数内部，不允许改变参数值。如果需要改变参数值，且同步回调用点，建议使用[@Link](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-link-0000001524297305-V2)。
+- @Builder内UI语法遵循[UI语法规则](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-create-custom-components-0000001473537046-V2#section1150911733811)。
+- 只有传入一个参数，且参数需要直接传入对象字面量才会按引用传递该参数，其余传递方式均为按值传递。
+
+##### 按引用传递参数
+
+按引用传递参数时，传递的参数可为状态变量，且状态变量的改变会引起`@Builder`方法内的UI刷新。ArkUI提供`$$`作为按引用传递参数的范式。
+
+```typescript
+ABuilder( $$ : { paramA1: string, paramB1 : string } );
+```
+
+```typescript
+@Builder function ABuilder($$: { paramA1: string }) {
+  Row() {
+    Text(`UseStateVarByReference: ${$$.paramA1} `)
+  }
+}
+
+@Entry
+@Component
+struct Parent {
+  @State label: string = 'Hello';
+  build() {
+    Column() {
+      // 在Parent组件中调用ABuilder的时候，将this.label引用传递给ABuilder
+      ABuilder({ paramA1: this.label })
+      Button('Click me').onClick(() => {
+        // 点击“Click me”后，UI从“Hello”刷新为“ArkUI”
+        this.label = 'ArkUI';
+      })
+    }
+  }
+}
+```
+
+##### 按值传递参数
+
+调用@Builder装饰的函数默认按值传递。当传递的参数为状态变量时，状态变量的改变不会引起@Builder方法内的UI刷新。所以当使用状态变量的时候，推荐使用[按引用传递](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-builder-0000001524176981-V2#section1522464044212)。
+
+```typescript
+@Builder function ABuilder(paramA1: string) {
+  Row() {
+    Text(`UseStateVarByValue: ${paramA1} `)
+  }
+}
+@Entry
+@Component
+struct Parent {
+  @State label: string = 'Hello';
+  build() {
+    Column() {
+      ABuilder(this.label)
+    }
+  }
+}
+```
+
+### @BuilderParam装饰器：引用@Builder函数
+
+当开发者创建了自定义组件，并想对该组件添加特定功能时，例如在自定义组件中添加一个点击跳转操作。若直接在组件内嵌入事件方法，将会导致所有引入该自定义组件的地方均增加了该功能。为解决此问题，ArkUI引入了`@BuilderParam`装饰器，`@BuilderParam`用来装饰指向`@Builder`方法的变量，开发者可在初始化自定义组件时对此属性进行赋值，为自定义组件增加特定的功能。该装饰器用于声明任意UI描述的一个元素，类似`slot`占位符。
+
+#### 装饰器使用说明
+
+##### 初始化@BuilderParam装饰的方法
+
+`@BuilderParam`装饰的方法只能被自定义构建函数（`@Builder`装饰的方法）初始化。
+
+- 使用所属自定义组件的自定义构建函数或者全局的自定义构建函数，在本地初始化`@BuilderParam`。
+
+  ```typescript
+  @Builder function GlobalBuilder0() {}
+  
+  @Component
+  struct Child {
+    @Builder doNothingBuilder() {};
+    // 使用自定义组件的自定义构建函数初始化@BuilderParam
+    @BuilderParam aBuilder0: () => void = this.doNothingBuilder;
+    // 使用全局自定义构建函数初始化@BuilderParam
+    @BuilderParam aBuilder1: () => void = GlobalBuilder0;
+    build(){}
+  }
+  ```
+
+- 用父组件自定义构建函数初始化子组件`@BuilderParam`装饰的方法。
+
+  ```typescript
+  @Component
+  struct Child {
+    // 使用父组件@Builder装饰的方法初始化子组件@BuilderParam
+    @BuilderParam aBuilder0: () => void;
+  
+    build() {
+      Column() {
+        this.aBuilder0()
+      }
+    }
+  }
+  
+  @Entry
+  @Component
+  struct Parent {
+    @Builder componentBuilder() {
+      Text(`Parent builder `)
+    }
+  
+    build() {
+      Column() {
+        Child({ aBuilder0: this.componentBuilder })
+      }
+    }
+  }
+  ```
+
+  ![2-4](./pic/2-4.png)
+
+- 需注意this指向正确。
+
+	 以下示例中，`Parent`组件在调用`this.componentBuilder()`时，`this`指向其所属组件，即`“Parent”`。`@Builder componentBuilder()`传给子组件`@BuilderParam aBuilder0`，在`Child`组件中调用`this.aBuilder0()`时，`this`指向在`Child`的`label`，即`“Child”`。
+
+	> 开发者谨慎使用bind改变函数调用的上下文，可能会使this指向混乱。
+	
+	```typescript
+	@Component
+	struct Child {
+	  label: string = `Child`
+	  @BuilderParam aBuilder0: () => void;
+	
+	  build() {
+	    Column() {
+	      this.aBuilder0()
+	    }
+	  }
+	}
+	
+	@Entry
+	@Component
+	struct Parent {
+	  label: string = `Parent`
+	
+	  @Builder componentBuilder() {
+	    Text(`${this.label}`)
+	  }
+	
+	  build() {
+	    Column() {
+	      this.componentBuilder()
+	      Child({ aBuilder0: this.componentBuilder })
+	    }
+	  }
+	}
+	```
+	
+	![2-5](./pic/2-5.png)
+	
+#### 使用场景
+
+##### 参数初始化组件
+
+`@BuilderParam`装饰的方法可以是有参数和无参数的两种形式，需与指向的`@Builder`方法类型匹配。`@BuilderParam`装饰的方法类型需要和`@Builder`方法类型一致。
+
+```typescript
+@Builder function GlobalBuilder1($$ : {label: string }) {
+  Text($$.label)
+    .width(400)
+    .height(50)
+    .backgroundColor(Color.Green)
+}
+
+@Component
+struct Child {
+  label: string = 'Child'
+  // 无参数类型，指向的componentBuilder也是无参数类型
+  @BuilderParam aBuilder0: () => void;
+  // 有参数类型，指向的GlobalBuilder1也是有参数类型的方法
+  @BuilderParam aBuilder1: ($$ : { label : string}) => void;
+
+  build() {
+    Column() {
+      this.aBuilder0()
+      this.aBuilder1({label: 'global Builder label' } )
+    }
+  }
+}
+
+@Entry
+@Component
+struct Parent {
+  label: string = 'Parent'
+
+  @Builder componentBuilder() {
+    Text(`${this.label}`)
+  }
+
+  build() {
+    Column() {
+      this.componentBuilder()
+      Child({ aBuilder0: this.componentBuilder, aBuilder1: GlobalBuilder1 })
+    }
+  }
+}
+```
+
+![2-6](./pic/2-6.png)
+
+##### 尾随闭包初始化组件
+
+在自定义组件中使用`@BuilderParam`装饰的属性时也可通过尾随闭包进行初始化。在初始化自定义组件时，组件后紧跟一个大括号“{}”形成尾随闭包场景。
+
+> 此场景下自定义组件内有且仅有一个使用@BuilderParam装饰的属性。
+
+开发者可以将尾随闭包内的内容看做`@Builder`装饰的函数传给`@BuilderParam`。示例如下：
+
+```typescript
+// xxx.ets
+@Component
+struct CustomContainer {
+  @Prop header: string;
+  // 使用父组件的尾随闭包{}(@Builder装饰的方法)初始化子组件@BuilderParam
+  @BuilderParam closer: () => void
+
+  build() {
+    Column() {
+      Text(this.header)
+        .fontSize(30)
+      this.closer()
+    }
+  }
+}
+
+@Builder function specificParam(label1: string, label2: string) {
+  Column() {
+    Text(label1)
+      .fontSize(30)
+    Text(label2)
+      .fontSize(30)
+  }
+}
+
+@Entry
+@Component
+struct CustomContainerUser {
+  @State text: string = 'header';
+
+  build() {
+    Column() {
+      // 创建CustomContainer，在创建CustomContainer时，通过其后紧跟一个大括号“{}”形成尾随闭包
+      // 作为传递给子组件CustomContainer @BuilderParam closer: () => void的参数
+      CustomContainer({ header: this.text }) {
+        Column() {
+          specificParam('testA', 'testB')
+        }.backgroundColor(Color.Yellow)
+        .onClick(() => {
+          this.text = 'changeHeader';
+        })
+      }
+    }
+  }
+}
+```
+
+![2-7](./pic/2-7.png)
+
+### @Styles装饰器：定义组件重用样式
+
+如果每个组件的样式都需要单独设置，在开发过程中会出现大量代码在进行重复样式设置，虽然可以复制粘贴，但为了代码简洁性和后续方便维护，我们推出了可以提炼公共样式进行复用的装饰器`@Styles`。
+
+`@Styles`装饰器可以将多条样式设置提炼成一个方法，直接在组件声明的位置调用。通过`@Styles`装饰器可以快速定义并复用自定义样式。用于快速定义并复用自定义样式。
+
+> 从API version 9开始，该装饰器支持在ArkTS卡片中使用。
+
+#### 装饰器使用说明
+
+- 当前@Styles仅支持[通用属性](https://developer.huawei.com/consumer/cn/doc/harmonyos-references-V2/ts-universal-attributes-size-0000001428061700-V2)和[通用事件](https://developer.huawei.com/consumer/cn/doc/harmonyos-references-V2/ts-universal-events-click-0000001477981153-V2)。
+
+- @Styles方法不支持参数，反例如下。
+
+  ```typescript
+  // 反例： @Styles不支持参数
+  @Styles function globalFancy (value: number) {
+    .width(value)
+  }
+  ```
+
+- @Styles可以定义在组件内或全局，在全局定义时需在方法名前面添加`function`关键字，组件内定义时则不需要添加`function`关键字。
+
+  ```typescript
+  // 全局
+  @Styles function functionName() { ... }
+  
+  // 在组件内
+  @Component
+  struct FancyUse {
+    @Styles fancy() {
+      .height(100)
+    }
+  }
+  ```
+
+- 定义在组件内的`@Styles`可以通过`this`访问组件的常量和状态变量，并可以在`@Styles`里通过事件来改变状态变量的值，示例如下：
+
+  ```typescript
+  @Component
+  struct FancyUse {
+    @State heightValue: number = 100
+    @Styles fancy() {
+      .height(this.heightValue)
+      .backgroundColor(Color.Yellow)
+      .onClick(() => {
+        this.heightValue = 200
+      })
+    }
+  }
+  ```
+
+- 组件内`@Styles`的优先级高于全局`@Styles`。
+
+  框架优先找当前组件内的`@Styles`，如果找不到，则会全局查找。
+
+#### 使用场景
+
+以下示例中演示了组件内@Styles和全局@Styles的用法。
+
+```typescript
+// 定义在全局的@Styles封装的样式
+@Styles function globalFancy  () {
+  .width(150)
+  .height(100)
+  .backgroundColor(Color.Pink)
+}
+
+@Entry
+@Component
+struct FancyUse {
+  @State heightValue: number = 100
+  // 定义在组件内的@Styles封装的样式
+  @Styles fancy() {
+    .width(200)
+    .height(this.heightValue)
+    .backgroundColor(Color.Yellow)
+    .onClick(() => {
+      this.heightValue = 200
+    })
+  }
+
+  build() {
+    Column({ space: 10 }) {
+      // 使用全局的@Styles封装的样式
+      Text('FancyA')
+        .globalFancy ()
+        .fontSize(30)
+      // 使用组件内的@Styles封装的样式
+      Text('FancyB')
+        .fancy()
+        .fontSize(30)
+    }
+  }
+}
+```
+
+### @Extend装饰器：定义扩展组件样式
+
+在前文的示例中，可以使用`@Styles`用于样式的扩展，在`@Styles`的基础上，我们提供了`@Extend`，用于扩展原生组件样式。
+
+> 从API version 9开始，该装饰器支持在ArkTS卡片中使用。
+
+#### 装饰器使用说明
+
+##### 语法
+
+```typescript
+@Extend(UIComponentName) function functionName { ... }
+```
+
+##### 使用规则
+
+- 和`@Styles`不同，`@Extend`仅支持定义在全局，不支持在组件内部定义。
+
+- 和`@Styles`不同，`@Extend`支持封装指定的组件的私有属性和私有事件和预定义相同组件的`@Extend`的方法。
+
+  ```typescript
+  // @Extend(Text)可以支持Text的私有属性fontColor
+  @Extend(Text) function fancy () {
+    .fontColor(Color.Red)
+  }
+  // superFancyText可以调用预定义的fancy
+  @Extend(Text) function superFancyText(size:number) {
+      .fontSize(size)
+      .fancy()
+  }
+  ```
+
+- 和`@Styles`不同，`@Extend`装饰的方法支持参数，开发者可以在调用时传递参数，调用遵循TS方法传值调用。
+
+  ```typescript
+  // xxx.ets
+  @Extend(Text) function fancy (fontSize: number) {
+    .fontColor(Color.Red)
+    .fontSize(fontSize)
+  }
+  
+  @Entry
+  @Component
+  struct FancyUse {
+    build() {
+      Row({ space: 10 }) {
+        Text('Fancy')
+          .fancy(16)
+        Text('Fancy')
+          .fancy(24)
+      }
+    }
+  }
+  ```
+
+- `@Extend`装饰的方法的参数可以为`function`，作为Event事件的句柄。
+
+  ```typescript
+  @Extend(Text) function makeMeClick(onClick: () => void) {
+    .backgroundColor(Color.Blue)
+    .onClick(onClick)
+  }
+  
+  @Entry
+  @Component
+  struct FancyUse {
+    @State label: string = 'Hello World';
+  
+    onClickHandler() {
+      this.label = 'Hello ArkUI';
+    }
+  
+    build() {
+      Row({ space: 10 }) {
+        Text(`${this.label}`)
+          .makeMeClick(this.onClickHandler.bind(this))
+      }
+    }
+  }
+  ```
+
+- `@Extend`的参数可以为[状态变量](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-state-management-overview-0000001524537145-V2)，当状态变量改变时，UI可以正常的被刷新渲染。
+
+  ```typescript
+  @Extend(Text) function fancy (fontSize: number) {
+    .fontColor(Color.Red)
+    .fontSize(fontSize)
+  }
+  
+  @Entry
+  @Component
+  struct FancyUse {
+    @State fontSizeValue: number = 20
+    build() {
+      Row({ space: 10 }) {
+        Text('Fancy')
+          .fancy(this.fontSizeValue)
+          .onClick(() => {
+            this.fontSizeValue = 30
+          })
+      }
+    }
+  }
+  ```
+
+#### 使用场景
+
+以下示例声明了3个`Text`组件，每个`Text`组件均设置了`fontStyle、fontWeight和backgroundColor`样式。
+
+```typescript
+@Entry
+@Component
+struct FancyUse {
+  @State label: string = 'Hello World'
+
+  build() {
+    Row({ space: 10 }) {
+      Text(`${this.label}`)
+        .fontStyle(FontStyle.Italic)
+        .fontWeight(100)
+        .backgroundColor(Color.Blue)
+      Text(`${this.label}`)
+        .fontStyle(FontStyle.Italic)
+        .fontWeight(200)
+        .backgroundColor(Color.Pink)
+      Text(`${this.label}`)
+        .fontStyle(FontStyle.Italic)
+        .fontWeight(300)
+        .backgroundColor(Color.Orange)
+    }.margin('20%')
+  }
+}
+```
+
+`@Extend`将样式组合复用，示例如下。
+
+```typescript
+@Extend(Text) function fancyText(weightValue: number, color: Color) {
+  .fontStyle(FontStyle.Italic)
+  .fontWeight(weightValue)
+  .backgroundColor(color)
+}
+```
+
+通过`@Extend`组合样式后，使得代码更加简洁，增强可读性。
+
+```typescript
+@Entry
+@Component
+struct FancyUse {
+  @State label: string = 'Hello World'
+
+  build() {
+    Row({ space: 10 }) {
+      Text(`${this.label}`)
+        .fancyText(100, Color.Blue)
+      Text(`${this.label}`)
+        .fancyText(200, Color.Pink)
+      Text(`${this.label}`)
+        .fancyText(300, Color.Orange)
+    }.margin('20%')
+  }
+}
+```
+
+### stateStyles：多态样式
+
+`@Styles`和`@Extend`仅仅应用于静态页面的样式复用，`stateStyles`可以依据组件的内部状态的不同，快速设置不同样式。这就是我们本章要介绍的内容`stateStyles`（又称为：多态样式）。
+
+#### 概述
+
+`stateStyles`是属性方法，可以根据UI内部状态来设置样式，类似于`css`伪类，但语法不同。ArkUI提供以下四种状态：
+
+- `focused`：获焦态。
+- `normal`：正常态。
+- `pressed`：按压态。
+- `disabled`：不可用态。
+
+#### 使用场景
+
+##### 基础场景
+
+下面的示例展示了`stateStyles`最基本的使用场景。`Button1`处于第一个组件，`Button2`处于第二个组件。按压时显示为`pressed`态指定的黑色。使用`Tab`键走焦，先是`Button1`获焦并显示为`focus`态指定的粉色。当`Button2`获焦的时候，`Button2`显示为`focus`态指定的粉色，`Button1`失焦显示`normal`态指定的红色。
+
+```typescript
+@Entry
+@Component
+struct StateStylesSample {
+  build() {
+    Column() {
+      Button('Button1')
+        .stateStyles({
+          focused: {
+            .backgroundColor(Color.Pink)
+          },
+          pressed: {
+            .backgroundColor(Color.Black)
+          },
+          normal: {
+            .backgroundColor(Color.Red)
+          }
+        })
+        .margin(20)
+      Button('Button2')
+        .stateStyles({
+          focused: {
+            .backgroundColor(Color.Pink)
+          },
+          pressed: {
+            .backgroundColor(Color.Black)
+          },
+          normal: {
+            .backgroundColor(Color.Red)
+          }
+        })
+    }.margin('30%')
+  }
+}
+```
+
+**图1** 获焦态和按压态
+
+![2-8](./pic/2-8.gif)
+
+![img](https://alliance-communityfile-drcn.dbankcdn.com/FileServer/getFile/cmtyPub/011/111/111/0000000000011111111.20240218102415.14876007736966622593359808812386:50001231000000:2800:9583C074BC3E4788E534CEF342817411F7AF873B5C9A3B4690D0B3E21EDD4F95.gif?needInitFileName=true?needInitFileName=true?needInitFileName=true)
+
+### @Styles和stateStyles联合使用
+
+以下示例通过@Styles指定stateStyles的不同状态。
+
+```typescript
+@Entry@Componentstruct MyComponent {  @Styles normalStyle() {    .backgroundColor(Color.Gray)  }
+  @Styles pressedStyle() {    .backgroundColor(Color.Red)  }
+  build() {    Column() {      Text('Text1')        .fontSize(50)        .fontColor(Color.White)        .stateStyles({          normal: this.normalStyle,          pressed: this.pressedStyle,        })    }  }}
+```
+
+**图2** 正常态和按压态
+
+![2-9](./pic/2-9.gif)
+
+### 在stateStyles里使用常规变量和状态变量
+
+stateStyles可以通过this绑定组件内的常规变量和状态变量。
+
+```typescript
+@Entry@Componentstruct CompWithInlineStateStyles {  @State focusedColor: Color = Color.Red;  normalColor: Color = Color.Green
+  build() {    Column() {      Button('clickMe').height(100).width(100)        .stateStyles({          normal: {            .backgroundColor(this.normalColor)          },          focused: {            .backgroundColor(this.focusedColor)          }        })        .onClick(() => {          this.focusedColor = Color.Pink        })        .margin('30%')    }  }}
+```
+
+Button默认normal态显示绿色，第一次按下Tab键让Button获焦显示为focus态的红色，点击事件触发后，再次按下Tab键让Button获焦，focus态变为粉色。
+
+**图3** 点击改变获焦态样式
+
+![2-10](./pic/2-10.gif)
+
+
+
+
 
 
 
