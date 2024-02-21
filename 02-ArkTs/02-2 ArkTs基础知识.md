@@ -1469,6 +1469,8 @@ ArkUI提供了多种装饰器，通过使用这些装饰器，状态变量不仅
 - **[@Provide装饰器和@Consume装饰器：与后代组件双向同步](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-provide-and-consume-0000001473857338-V2)**
 - **[@Observed装饰器和@ObjectLink装饰器：嵌套类对象属性变化](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-observed-and-objectlink-0000001473697338-V2)**
 
+
+
 #### @State装饰器：组件内状态
 
 `@State`装饰的变量，或称为状态变量，一旦变量拥有了状态属性，就和自定义组件的渲染绑定起来。当状态改变时，UI会发生对应的渲染改变。
@@ -1488,263 +1490,1313 @@ ArkUI提供了多种装饰器，通过使用这些装饰器，状态变量不仅
 
 ##### 装饰器使用规则说明
 
-| @State变量装饰器               | 说明                                                         |
-| ----------------------------------------------- | ------------------------------------------------------------ |
-| 装饰器参数 | 无                                                           |
-| 同步类型           | 不与父组件中任何类型的变量同步。                             |
-| 允许装饰的变量类型 | Object、class、string、number、boolean、enum类型，以及这些类型的数组。嵌套类型的场景请参考[观察变化](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-state-0000001474017162-V2#section135631413173517)。类型必须被指定。不支持any，不支持简单类型和复杂类型的联合类型，不允许使用undefined和null。说明建议不要装饰Date类型，应用可能会产生异常行为。不支持Length、ResourceStr、ResourceColor类型，Length、ResourceStr、ResourceColor为简单类型和复杂类型的联合类型。 |
-| 被装饰变量的初始值 | 必须本地初始化。                                             |
+| @State变量装饰器 | 说明 |
+| --------- | ------- |
+| 装饰器参数 | 无  |
+| 同步类型 | 不与父组件中任何类型的变量同步。|
+| 允许装饰的变量类型 | Object、class、string、number、boolean、enum类型，以及这些类型的数组。嵌套类型的场景请参考[观察变化](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-state-0000001474017162-V2#section135631413173517)。类型必须被指定。不支持any，不支持简单类型和复杂类型的联合类型，不允许使用undefined和null。建议不要装饰Date类型，应用可能会产生异常行为。不支持Length、ResourceStr、ResourceColor类型，Length、ResourceStr、ResourceColor为简单类型和复杂类型的联合类型。 |
+| 被装饰变量的初始值 | 必须本地初始化。|
 
 ##### 变量的传递/访问规则说明
 
-| 传递/访问 | 说明        |
-| --------------------------- | ------------------------------------------------------------ |
+| 传递/访问 | 说明 |
+| ------- | -------- |
 | 从父组件初始化 | 可选，从父组件初始化或者本地初始化。如果从父组件初始化将会覆盖本地初始化。支持父组件中常规变量、@State、@Link、@Prop、@Provide、@Consume、@ObjectLink、@StorageLink、@StorageProp、@LocalStorageLink和@LocalStorageProp装饰的变量，初始化子组件的@State。 |
 | 用于初始化子组件   | @State装饰的变量支持初始化子组件的常规变量、@State、@Link、@Prop、@Provide。 |
-| 是否支持组件外访问 | 不支持，只能在组件内访问。                                   |
+| 是否支持组件外访问 | 不支持，只能在组件内访问。|
 
 **图1** 初始化规则图示
+
+![2-14](./pic/2-14.png)
+
+##### 观察变化和行为表现
+
+并不是状态变量的所有更改都会引起UI的刷新，只有可以被框架观察到的修改才会引起UI刷新。本小节将介绍什么样的修改才能被观察到，以及观察到变化后，框架的是怎么引起UI刷新的，即框架的行为表现是什么。
+
+###### 观察变化
+
+- 当装饰的数据类型为`boolean、string、number`类型时，可以观察到数值的变化。
+
+  ```typescript
+  // for simple type
+  @State count: number = 0;
+  // value changing can be observed
+  this.count = 1;
+  ```
+
+- 当装饰的数据类型为`class`或者`Object`时，可以观察到自身的赋值的变化，和其属性赋值的变化，即`Object.keys(observedObject)`返回的所有属性。例子如下。
+
+  声明`ClassA`和`Model`类。
+
+  ```typescript
+  class ClassA {
+    public value: string;
+  
+    constructor(value: string) {
+      this.value = value;
+    }
+  }
+  
+  class Model {
+    public value: string;
+    public name: ClassA;
+    constructor(value: string, a: ClassA) {
+      this.value = value;
+      this.name = a;
+    }
+  }
+  ```
+
+  @State装饰的类型是Model
+
+  ```typescript
+  // class类型
+  @State title: Model = new Model('Hello', new ClassA('World'));
+  ```
+
+  对@State装饰变量的赋值。
+
+  ```typescript
+  // class类型赋值
+  this.title = new Model('Hi', new ClassA('ArkUI'));
+  ```
+
+  对@State装饰变量的属性赋值。
+
+  ```typescript
+  // class属性的赋值
+  this.title.value = 'Hi';
+  ```
+
+  嵌套属性的赋值观察不到。
+
+  ```typescript
+  // 嵌套的属性赋值观察不到
+  this.title.name.value = 'ArkUI';
+  ```
+
+- 当装饰的对象是array时，可以观察到数组本身的赋值和添加、删除、更新数组的变化。例子如下。
+
+  声明Model类。
+
+  ```typescript
+  class Model {
+    public value: number;
+    constructor(value: number) {
+      this.value = value;
+    }
+  }
+  ```
+
+  @State装饰的对象为Model类型数组时。
+
+  ```typescript
+  @State title: Model[] = [new Model(11), new Model(1)];
+  ```
+
+  数组自身的赋值可以观察到。
+
+  ```typescript
+  this.title = [new Model(2)];
+  ```
+
+  数组项的赋值可以观察到。
+
+  ```typescript
+  this.title[0] = new Model(2);
+  ```
+
+  删除数组项可以观察到。
+
+  ```typescript
+  this.title.pop();
+  ```
+
+  新增数组项可以观察到。
+
+  ```typescript
+  this.title.push(new Model(12));
+  ```
+
+  数组项中属性的赋值观察不到。
+
+  ```typescript
+  this.title[0].value = 6;
+  ```
+
+###### 框架行为
+
+- 当状态变量被改变时，查询依赖该状态变量的组件；
+- 执行依赖该状态变量的组件的更新方法，组件更新渲染；
+- 和该状态变量不相关的组件或者UI描述不会发生重新渲染，从而实现页面渲染的按需更新。
+
+##### 使用场景
+
+###### 装饰简单类型的变量
+
+以下示例为@State装饰的简单类型，count被@State装饰成为状态变量，count的改变引起Button组件的刷新：
+
+- 当状态变量count改变时，查询到只有Button组件关联了它；
+- 执行Button组件的更新方法，实现按需刷新。
+
+```typescript
+@Entry
+@Component
+struct MyComponent {
+  @State count: number = 0;
+
+  build() {
+    Button(`click times: ${this.count}`)
+      .onClick(() => {
+        this.count += 1;
+      })
+  }
+}
+```
+
+###### 装饰class对象类型的变量
+
+- 自定义组件MyComponent定义了被@State装饰的状态变量count和title，其中title的类型为自定义类Model。如果count或title的值发生变化，则查询MyComponent中使用该状态变量的UI组件，并进行重新渲染。
+
+- EntryComponent中有多个MyComponent组件实例，第一个MyComponent内部状态的更改不会影响第二个MyComponent。
+
+  ```typescript
+  class Model {
+    public value: string;
+  
+    constructor(value: string) {
+      this.value = value;
+    }
+  }
+  
+  @Entry
+  @Component
+  struct EntryComponent {
+    build() {
+      Column() {
+        // 此处指定的参数都将在初始渲染时覆盖本地定义的默认值，并不是所有的参数都需要从父组件初始化
+        MyComponent({ count: 1, increaseBy: 2 })
+          .width(300)
+        MyComponent({ title: new Model('Hello World 2'), count: 7 })
+      }
+    }
+  }
+  
+  @Component
+  struct MyComponent {
+    @State title: Model = new Model('Hello World');
+    @State count: number = 0;
+    private increaseBy: number = 1;
+  
+    build() {
+      Column() {
+        Text(`${this.title.value}`)
+          .margin(10)
+        Button(`Click to change title`)
+          .onClick(() => {
+            // @State变量的更新将触发上面的Text组件内容更新
+            this.title.value = this.title.value === 'Hello ArkUI' ? 'Hello World' : 'Hello ArkUI';
+          })
+          .width(300)
+          .margin(10)
+  
+        Button(`Click to increase count = ${this.count}`)
+          .onClick(() => {
+            // @State变量的更新将触发该Button组件的内容更新
+            this.count += this.increaseBy;
+          })
+          .width(300)
+          .margin(10)
+      }
+    }
+  }
+  ```
+
+  ![2-15](./pic/2-15.gif)
+
+从该示例中，我们可以了解到@State变量首次渲染的初始化流程：
+
+1. 使用默认的本地初始化：
+
+   ```typescript
+   @State title: Model = new Model('Hello World');
+   @State count: number = 0;
+   ```
+
+2. 对于@State来说，命名参数机制传递的值并不是必选的，如果没有命名参数传值，则使用本地初始化的默认值：
+
+   ```typescript
+   MyComponent({ count: 1, increaseBy: 2 })
+   ```
+
+
+
+#### @Prop装饰器：父子单向同步
+
+@Prop装饰的变量可以和父组件建立单向的同步关系。@Prop装饰的变量是可变的，但是变化不会同步回其父组件。
+
+> 从API version 9开始，该装饰器支持在ArkTS卡片中使用。
+
+##### 概述
+
+@Prop装饰的变量和父组件建立单向的同步关系：
+
+- @Prop变量允许在本地修改，但修改后的变化不会同步回父组件。
+- 当父组件中的数据源更改时，与之相关的@Prop装饰的变量都会自动更新。如果子组件已经在本地修改了@Prop装饰的相关变量值，而在父组件中对应的@State装饰的变量被修改后，子组件本地修改的@Prop装饰的相关变量值将被覆盖。
+
+##### 限制条件
+
+@Prop装饰器不能在@Entry装饰的自定义组件中使用。
+
+##### 装饰器使用规则说明
+
+| @Prop变量装饰器 | 说明 |
+| ------- | ------------ |
+| 装饰器参数         | 无    |
+| 同步类型           | 单向同步：对父组件状态变量值的修改，将同步给子组件@Prop装饰的变量，子组件@Prop变量的修改不会同步到父组件的状态变量上 |
+| 允许装饰的变量类型 | string、number、boolean、enum类型。不支持any，不允许使用undefined和null。必须指定类型。在父组件中，传递给@Prop装饰的值不能为undefined或者null，反例如下所示。  CompA ({ aProp: undefined })  CompA ({ aProp: null })  @Prop和[数据源](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-state-management-overview-0000001524537145-V2#section127619262713)类型需要相同，有以下三种情况（数据源以@State为例）：@Prop装饰的变量和父组件状态变量类型相同，即@Prop : S和@State : S，示例请参考[父组件@State到子组件@Prop简单数据类型同步](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-prop-0000001473537702-V2#section614118685518)。当父组件的状态变量为数组时，@Prop装饰的变量和父组件状态变量的数组项类型相同，即@Prop : S和@State : Array<S>，示例请参考[父组件@State数组中的项到子组件@Prop简单数据类型同步](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-prop-0000001473537702-V2#section99561777591)；当父组件状态变量为Object或者class时，@Prop装饰的变量和父组件状态变量的属性类型相同，即@Prop : S和@State : { propA: S }，示例请参考[从父组件中的@State类对象属性到@Prop简单类型的同步](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-prop-0000001473537702-V2#section1381944312202)。 |
+| 被装饰变量的初始值 | 允许本地初始化。  |
+
+##### 变量的传递/访问规则说明
+
+| 传递/访问  | 说明       |
+| ------ | ------ |
+| 从父组件初始化 | 如果本地有初始化，则是可选的。没有的话，则必选，支持父组件中的常规变量、@State、@Link、@Prop、@Provide、@Consume、@ObjectLink、@StorageLink、@StorageProp、@LocalStorageLink和@LocalStorageProp去初始化子组件中的@Prop变量。 |
+| 用于初始化子组件 | @Prop支持去初始化子组件中的常规变量、@State、@Link、@Prop、@Provide。 |
+| 是否支持组件外访问 | @Prop装饰的变量是私有的，只能在组件内访问。|
+
+**图1** 初始化规则图示
+
+![2-16](./pic/2-16.png)
+
+##### 观察变化和行为表现
+
+###### 观察变化
+
+@Prop装饰的数据可以观察到以下变化。
+
+- 当装饰的类型是允许的类型，即string、number、boolean、enum类型都可以观察到的赋值变化；
+
+  ```typescript
+  // 简单类型
+  @Prop count: number;
+  // 赋值的变化可以被观察到
+  this.count = 1;
+  ```
+
+对于@State和@Prop的同步场景：
+
+- 使用父组件中@State变量的值初始化子组件中的@Prop变量。当@State变量变化时，该变量值也会同步更新至@Prop变量。
+- @Prop装饰的变量的修改不会影响其数据源@State装饰变量的值。
+- 除了@State，数据源也可以用@Link或@Prop装饰，对@Prop的同步机制是相同的。
+- 数据源和@Prop变量的类型需要相同。
+
+###### 框架行为
+
+要理解@Prop变量值初始化和更新机制，有必要了解父组件和拥有@Prop变量的子组件初始渲染和更新流程。
+
+1. 初始渲染：
+   1. 执行父组件的build()函数将创建子组件的新实例，将数据源传递给子组件；
+   2. 初始化子组件@Prop装饰的变量。
+2. 更新：
+   1. 子组件@Prop更新时，更新仅停留在当前子组件，不会同步回父组件；
+   2. 当父组件的数据源更新时，子组件的@Prop装饰的变量将被来自父组件的数据源重置，所有@Prop装饰的本地的修改将被父组件的更新覆盖。
+
+> @Prop装饰的数据更新依赖其所属自定义组件的重新渲染，所以在应用进入后台后，@Prop无法刷新，推荐使用@Link代替。
+
+##### 使用场景
+
+###### 父组件@State到子组件@Prop简单数据类型同步
+
+以下示例是@State到子组件@Prop简单数据同步，父组件ParentComponent的状态变量countDownStartValue初始化子组件CountDownComponent中@Prop装饰的count，点击“Try again”，count的修改仅保留在CountDownComponent，不会同步给父组件ParentComponent。
+
+ParentComponent的状态变量countDownStartValue的变化将重置CountDownComponent的count。
+
+```typescript
+@Component
+struct CountDownComponent {
+  @Prop count: number;
+  costOfOneAttempt: number = 1;
+
+  build() {
+    Column() {
+      if (this.count > 0) {
+        Text(`You have ${this.count} Nuggets left`)
+      } else {
+        Text('Game over!')
+      }
+      // @Prop装饰的变量不会同步给父组件
+      Button(`Try again`).onClick(() => {
+        this.count -= this.costOfOneAttempt;
+      })
+    }
+  }
+}
+
+@Entry
+@Component
+struct ParentComponent {
+  @State countDownStartValue: number = 10;
+
+  build() {
+    Column() {
+      Text(`Grant ${this.countDownStartValue} nuggets to play.`)
+      // 父组件的数据源的修改会同步给子组件
+      Button(`+1 - Nuggets in New Game`).onClick(() => {
+        this.countDownStartValue += 1;
+      })
+      // 父组件的修改会同步给子组件
+      Button(`-1  - Nuggets in New Game`).onClick(() => {
+        this.countDownStartValue -= 1;
+      })
+
+      CountDownComponent({ count: this.countDownStartValue, costOfOneAttempt: 2 })
+    }
+  }
+}
+```
+
+在上面的示例中：
+
+1. CountDownComponent子组件首次创建时其@Prop装饰的count变量将从父组件@State装饰的countDownStartValue变量初始化；
+2. 按“+1”或“-1”按钮时，父组件的@State装饰的countDownStartValue值会变化，这将触发父组件重新渲染，在父组件重新渲染过程中会刷新使用countDownStartValue状态变量的UI组件并单向同步更新CountDownComponent子组件中的count值；
+3. 更新count状态变量值也会触发CountDownComponent的重新渲染，在重新渲染过程中，评估使用count状态变量的if语句条件（this.count > 0），并执行true分支中的使用count状态变量的UI组件相关描述来更新Text组件的UI显示；
+4. 当按下子组件CountDownComponent的“Try again”按钮时，其@Prop变量count将被更改，但是count值的更改不会影响父组件的countDownStartValue值；
+5. 父组件的countDownStartValue值会变化时，父组件的修改将覆盖掉子组件CountDownComponent中count本地的修改。
+
+###### 父组件@State数组项到子组件@Prop简单数据类型同步
+
+父组件中@State如果装饰的数组，其数组项也可以初始化@Prop。以下示例中父组件Index中@State装饰的数组arr，将其数组项初始化子组件Child中@Prop装饰的value。
+
+```typescript
+@Component
+struct Child {
+  @Prop value: number;
+
+  build() {
+    Text(`${this.value}`)
+      .fontSize(50)
+      .onClick(()=>{this.value++})
+  }
+}
+
+@Entry
+@Component
+struct Index {
+  @State arr: number[] = [1,2,3];
+
+  build() {
+    Row() {
+      Column() {
+        Child({value: this.arr[0]})
+        Child({value: this.arr[1]})
+        Child({value: this.arr[2]})
+
+        Divider().height(5)
+
+        ForEach(this.arr, 
+          item => {
+            Child({'value': item} as Record<string, number>)
+          }, 
+          item => item.toString()
+        )
+        Text('replace entire arr')
+        .fontSize(50)
+        .onClick(()=>{
+          // 两个数组都包含项“3”。
+          this.arr = this.arr[0] == 1 ? [3,4,5] : [1,2,3];
+        })
+      }
+    }
+  }
+}
+```
+
+初始渲染创建6个子组件实例，每个@Prop装饰的变量初始化都在本地拷贝了一份数组项。子组件onclick事件处理程序会更改局部变量值。
+
+如果点击界面上的“1”六次、“2”五次、“3”四次，将所有变量的本地取值都变为“7”。
+
+```typescript
+7
+7
+7
+----
+7
+7
+7
+```
+
+单击replace entire arr后，屏幕将显示以下信息，为什么？
+
+```typescript
+3
+4
+5
+----
+7
+4
+5
+```
+
+- 在子组件Child中做的所有的修改都不会同步回父组件Index组件，所以即使6个组件显示都为7，但在父组件Index中，this.arr保存的值依旧是[1,2,3]。
+- 点击replace entire arr，this.arr[0] == 1成立，将this.arr赋值为[3, 4, 5]；
+- 因为this.arr[0]已更改，Child({value: this.arr[0]})组件将this.arr[0]更新同步到实例@Prop装饰的变量。Child({value: this.arr[1]})和Child({value: this.arr[2]})的情况也类似。
+
+- this.arr的更改触发ForEach更新，this.arr更新的前后都有数值为3的数组项：[3, 4, 5] 和[1, 2, 3]。根据diff算法，数组项“3”将被保留，删除“1”和“2”的数组项，添加为“4”和“5”的数组项。这就意味着，数组项“3”的组件不会重新生成，而是将其移动到第一位。所以“3”对应的组件不会更新，此时“3”对应的组件数值为“7”，ForEach最终的渲染结果是“7”，“4”，“5”。
+
+###### 从父组件中的@State类对象属性到@Prop简单类型的同步
+
+如果图书馆有一本图书和两位用户，每位用户都可以将图书标记为已读，此标记行为不会影响其它读者用户。从代码角度讲，对@Prop图书对象的本地更改不会同步给图书馆组件中的@State图书对象。
+
+```typescript
+class Book {
+  public title: string;
+  public pages: number;
+  public readIt: boolean = false;
+
+  constructor(title: string, pages: number) {
+    this.title = title;
+    this.pages = pages;
+  }
+}
+
+@Component
+struct ReaderComp {
+  @Prop title: string;
+  @Prop readIt: boolean;
+
+  build() {
+    Row() {
+      Text(this.title)
+      Text(`... ${this.readIt ? 'I have read' : 'I have not read it'}`)
+        .onClick(() => this.readIt = true)
+    }
+  }
+}
+
+@Entry
+@Component
+struct Library {
+  @State book: Book = new Book('100 secrets of C++', 765);
+
+  build() {
+    Column() {
+      ReaderComp({ title: this.book.title, readIt: this.book.readIt })
+      ReaderComp({ title: this.book.title, readIt: this.book.readIt })
+    }
+  }
+}
+```
+
+###### @Prop本地初始化不和父组件同步
+
+为了支持@Component装饰的组件复用场景，@Prop支持本地初始化，这样可以让@Prop是否与父组件建立同步关系变得可选。当且仅当@Prop有本地初始化时，从父组件向子组件传递@Prop的数据源才是可选的。
+
+下面的示例中，子组件包含两个@Prop变量：
+
+- @Prop customCounter没有本地初始化，所以需要父组件提供数据源去初始化@Prop，并当父组件的数据源变化时，@Prop也将被更新；
+
+- @Prop customCounter2有本地初始化，在这种情况下，@Prop依旧允许但非强制父组件同步数据源给@Prop。
+
+  ```typescript
+  @Component
+  struct MyComponent {
+    @Prop customCounter: number;
+    @Prop customCounter2: number = 5;
+  
+    build() {
+      Column() {
+        Row() {
+          Text(`From Main: ${this.customCounter}`).fontColor('#ff6b6565').margin({ left: -110, top: 12 })
+        }
+  
+        Row() {
+          Button('Click to change locally !')
+            .width(288)
+            .height(40)
+            .margin({ left: 30, top: 12 })
+            .fontColor('#FFFFFF，90%')
+            .onClick(() => {
+              this.customCounter2++
+            })
+        }
+  
+        Row() {
+          Text(`Custom Local: ${this.customCounter2}`).fontColor('#ff6b6565').margin({ left: -110, top: 12 })
+        }
+      }
+    }
+  }
+  
+  @Entry
+  @Component
+  struct MainProgram {
+    @State mainCounter: number = 10;
+  
+    build() {
+      Column() {
+        Row() {
+          Column() {
+            // customCounter必须从父组件初始化，因为MyComponent的customCounter成员变量缺少本地初始化；此处，customCounter2可以不做初始化。
+            MyComponent({ customCounter: this.mainCounter })
+            // customCounter2也可以从父组件初始化，父组件初始化的值会覆盖子组件customCounter2的本地初始化的值
+            MyComponent({ customCounter: this.mainCounter, customCounter2: this.mainCounter })
+          }
+        }
+  
+        Row() {
+          Column() {
+            Button('Click to change number')
+              .width(288)
+              .height(40)
+              .margin({ left: 30, top: 12 })
+              .fontColor('#FFFFFF，90%')
+              .onClick(() => {
+                this.mainCounter++
+              })
+          }
+        }
+      }
+    }
+  }
+  ```
+  
+  ![2-17](./pic/2-17.gif)
+
+
+
+#### @Link装饰器：父子双向同步
+
+子组件中被@Link装饰的变量与其父组件中对应的数据源建立双向数据绑定。
+
+> 从API version 9开始，该装饰器支持在ArkTS卡片中使用。
+
+##### 概述
+
+@Link装饰的变量与其父组件中的数据源共享相同的值。
+
+##### 限制条件
+
+@Link装饰器不能在@Entry装饰的自定义组件中使用。
+
+##### 装饰器使用规则说明
+
+| @Link变量装饰器 | 说明 |
+| ----------- | -------- |
+| 装饰器参数  | 无 |
+| 同步类型 | 双向同步。父组件中@State, @StorageLink和@Link 和子组件@Link可以建立双向数据同步，反之亦然。 |
+| 允许装饰的变量类型 | Object、class、string、number、boolean、enum类型，以及这些类型的数组。嵌套类型的场景请参考[观察变化](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-link-0000001524297305-V2#section7141136115513)。类型必须被指定，且和双向绑定状态变量的类型相同。不支持any，不支持简单类型和复杂类型的联合类型，不允许使用undefined和null。不支持Length、ResourceStr、ResourceColor类型，Length、ResourceStr、ResourceColor为简单类型和复杂类型的联合类型。 |
+| 被装饰变量的初始值 | 无，禁止本地初始化。|
+
+##### 变量的传递/访问规则说明
+
+| 传递/访问 | 说明 |
+| -------- | --------- |
+| 从父组件初始化和更新 | 必选。与父组件@State, @StorageLink和@Link 建立双向绑定。允许父组件中@State、@Link、@Prop、@Provide、@Consume、@ObjectLink、@StorageLink、@StorageProp、@LocalStorageLink和@LocalStorageProp装饰变量初始化子组件@Link。从API version 9开始，@Link子组件从父组件初始化@State的语法为Comp({ aLink: this.aState })。同样Comp({aLink: $aState})也支持。 |
+| 用于初始化子组件 | 允许，可用于初始化常规变量、@State、@Link、@Prop、@Provide。 |
+| 是否支持组件外访问   | 私有，只能在所属组件内访问。|
+
+**图1** 初始化规则图示
+
+![2-18](./pic/2-18.png)
+
+
+
+##### 观察变化和行为表现
+
+###### 观察变化
+
+- 当装饰的数据类型为boolean、string、number类型时，可以同步观察到数值的变化，示例请参考[简单类型和类对象类型的@Link](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-link-0000001524297305-V2#section614118685518)。
+- 当装饰的数据类型为class或者Object时，可以观察到赋值和属性赋值的变化，即Object.keys(observedObject)返回的所有属性，示例请参考[简单类型和类对象类型的@Link](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-link-0000001524297305-V2#section614118685518)。
+- 当装饰的对象是array时，可以观察到数组添加、删除、更新数组单元的变化，示例请参考[数组类型的@Link](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-link-0000001524297305-V2#section99561777591)。
+
+###### 框架行为
+
+@Link装饰的变量和其所属的自定义组件共享生命周期。
+
+为了了解@Link变量初始化和更新机制，有必要先了解父组件和拥有@Link变量的子组件的关系，初始渲染和双向更新的流程（以父组件为@State为例）。
+
+1. 初始渲染：执行父组件的build()函数后将创建子组件的新实例。初始化过程如下：
+   1. 必须指定父组件中的@State变量，用于初始化子组件的@Link变量。子组件的@Link变量值与其父组件的数据源变量保持同步（双向数据同步）。
+   2. 父组件的@State状态变量包装类通过构造函数传给子组件，子组件的@Link包装类拿到父组件的@State的状态变量后，将当前@Link包装类this指针注册给父组件的@State变量。
+2. @Link的数据源的更新：即父组件中状态变量更新，引起相关子组件的@Link的更新。处理步骤：
+   1. 通过初始渲染的步骤可知，子组件@Link包装类把当前this指针注册给父组件。父组件@State变量变更后，会遍历更新所有依赖它的系统组件（elementid）和状态变量（比如@Link包装类）。
+   2. 通知@Link包装类更新后，子组件中所有依赖@Link状态变量的系统组件（elementId）都会被通知更新。以此实现父组件对子组件的状态数据同步。
+3. @Link的更新：当子组件中@Link更新后，处理步骤如下（以父组件为@State为例）：
+   1. @Link更新后，调用父组件的@State包装类的set方法，将更新后的数值同步回父组件。
+   2. 子组件@Link和父组件@State分别遍历依赖的系统组件，进行对应的UI的更新。以此实现子组件@Link同步回父组件@State。
+
+##### 使用场景
+
+###### 简单类型和类对象类型的@Link
+
+以下示例中，点击父组件ShufflingContainer中的“Parent View: Set yellowButton”和“Parent View: Set GreenButton”，可以从父组件将变化同步给子组件。
+
+1.点击子组件GreenButton和YellowButton中的Button，子组件会发生相应变化，将变化同步给父组件。因为@Link是双向同步，会将变化同步给@State。
+
+2.当点击父组件ShufflingContainer中的Button时，@State变化，也会同步给@Link，子组件也会发生对应的刷新。
+
+```typescript
+class GreenButtonState {
+  width: number = 0;
+
+  constructor(width: number) {
+    this.width = width;
+  }
+}
+
+@Component
+struct GreenButton {
+  @Link greenButtonState: GreenButtonState;
+
+  build() {
+    Button('Green Button')
+      .width(this.greenButtonState.width)
+      .height(40)
+      .backgroundColor('#64bb5c')
+      .fontColor('#FFFFFF，90%')
+      .onClick(() => {
+        if (this.greenButtonState.width < 700) {
+          // 更新class的属性，变化可以被观察到同步回父组件
+          this.greenButtonState.width += 60;
+        } else {
+          // 更新class，变化可以被观察到同步回父组件
+          this.greenButtonState = new GreenButtonState(180);
+        }
+      })
+  }
+}
+
+@Component
+struct YellowButton {
+  @Link yellowButtonState: number;
+
+  build() {
+    Button('Yellow Button')
+      .width(this.yellowButtonState)
+      .height(40)
+      .backgroundColor('#f7ce00')
+      .fontColor('#FFFFFF，90%')
+      .onClick(() => {
+        // 子组件的简单类型可以同步回父组件
+        this.yellowButtonState += 40.0;
+      })
+  }
+}
+
+@Entry
+@Component
+struct ShufflingContainer {
+  @State greenButtonState: GreenButtonState = new GreenButtonState(180);
+  @State yellowButtonProp: number = 180;
+
+  build() {
+    Column() {
+      Flex({ direction: FlexDirection.Column, alignItems: ItemAlign.Center }) {
+        // 简单类型从父组件@State向子组件@Link数据同步
+        Button('Parent View: Set yellowButton')
+          .width(312)
+          .height(40)
+          .margin(12)
+          .fontColor('#FFFFFF，90%')
+          .onClick(() => {
+            this.yellowButtonProp = (this.yellowButtonProp < 700) ? this.yellowButtonProp + 40 : 100;
+          })
+        // class类型从父组件@State向子组件@Link数据同步
+        Button('Parent View: Set GreenButton')
+          .width(312)
+          .height(40)
+          .margin(12)
+          .fontColor('#FFFFFF，90%')
+          .onClick(() => {
+            this.greenButtonState.width = (this.greenButtonState.width < 700) ? this.greenButtonState.width + 100 : 100;
+          })
+        // class类型初始化@Link
+        GreenButton({ greenButtonState: $greenButtonState }).margin(12)
+        // 简单类型初始化@Link
+        YellowButton({ yellowButtonState: $yellowButtonProp }).margin(12)
+      }
+    }
+  }
+}
+```
+
+![2-19](./pic/2-19.gif)
+
+###### 数组类型的@Link
+
+```typescript
+@Component
+struct Child {
+  @Link items: number[];
+
+  build() {
+    Column() {
+      Button(`Button1: push`)
+        .margin(12)
+        .width(312)
+        .height(40)
+        .fontColor('#FFFFFF，90%')
+        .onClick(() => {
+          this.items.push(this.items.length + 1);
+        })
+      Button(`Button2: replace whole item`)
+        .margin(12)
+        .width(312)
+        .height(40)
+        .fontColor('#FFFFFF，90%')
+        .onClick(() => {
+          this.items = [100, 200, 300];
+        })
+    }
+  }
+}
+
+@Entry
+@Component
+struct Parent {
+  @State arr: number[] = [1, 2, 3];
+
+  build() {
+    Column() {
+      Child({ items: $arr })
+        .margin(12)
+      ForEach(this.arr,
+        (item: number) => {
+          Button(`${item}`)
+            .margin(12)
+            .width(312)
+            .height(40)
+            .backgroundColor('#11a2a2a2')
+            .fontColor('#e6000000')
+        },
+        (item: ForEachInterface) => item.toString()
+      )
+    }
+  }
+}
+```
+
+上文所述，ArkUI框架可以观察到数组元素的添加，删除和替换。在该示例中@State和@Link的类型是相同的number[]，不允许将@Link定义成number类型（@Link item : number），并在父组件中用@State数组中每个数据项创建子组件。如果要使用这个场景，可以参考[@Prop](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-prop-0000001473537702-V2#ZH-CN_TOPIC_0000001574128565__section0418145414102)和@Observed。
+
+![2-20](./pic/2-20.gif)
+
+#### @Provide装饰器和@Consume装饰器：与后代组件双向同步
+
+@Provide和@Consume，应用于与后代组件的双向数据同步，应用于状态数据在多个层级之间传递的场景。不同于上文提到的父子组件之间通过命名参数机制传递，@Provide和@Consume摆脱参数传递机制的束缚，实现跨层级传递。
+
+其中@Provide装饰的变量是在祖先节点中，可以理解为被“提供”给后代的状态变量。@Consume装饰的变量是在后代组件中，去“消费（绑定）”祖先节点提供的变量。
+
+> 从API version 9开始，这两个装饰器支持在ArkTS卡片中使用。
+
+##### 概述
+
+@Provide/@Consume装饰的状态变量有以下特性：
+
+- @Provide装饰的状态变量自动对其所有后代组件可用，即该变量被“provide”给他的后代组件。由此可见，@Provide的方便之处在于，开发者不需要多次在组件之间传递变量。
+- 后代通过使用@Consume去获取@Provide提供的变量，建立在@Provide和@Consume之间的双向数据同步，与@State/@Link不同的是，前者可以在多层级的父子组件之间传递。
+- @Provide和@Consume可以通过相同的变量名或者相同的变量别名绑定，变量类型必须相同。
+
+```typescript
+// 通过相同的变量名绑定
+@Provide a: number = 0;
+@Consume a: number;
+
+// 通过相同的变量别名绑定
+@Provide('a') b: number = 0;
+@Consume('a') c: number;
+```
+
+@Provide和@Consume通过相同的变量名或者相同的变量别名绑定时，@Provide修饰的变量和@Consume修饰的变量是一对多的关系。不允许在同一个自定义组件内，包括其子组件中声明多个同名或者同别名的@Provide装饰的变量。
+
+##### 装饰器说明
+
+@State的规则同样适用于@Provide，差异为@Provide还作为多层后代的同步源。
+
+| @Provide变量装饰器 | 说明  |
+| ------------- | ------ |
+| 装饰器参数 | 别名：常量字符串，可选。如果指定了别名，则通过别名来绑定变量；如果未指定别名，则通过变量名绑定变量。 |
+| 同步类型  | 双向同步。从@Provide变量到所有@Consume变量以及相反的方向的数据同步。双向同步的操作与@State和@Link的组合相同。 |
+| 允许装饰的变量类型 | Object、class、string、number、boolean、enum类型，以及这些类型的数组。嵌套类型的场景请参考[观察变化](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-provide-and-consume-0000001473857338-V2#section7141136115513)。不支持any，不支持简单类型和复杂类型的联合类型，不允许使用undefined和null。必须指定类型。@Provide变量的@Consume变量的类型必须相同。不支持Length、ResourceStr、ResourceColor类型，Length、ResourceStr、ResourceColor为简单类型和复杂类型的联合类型。 |
+| 被装饰变量的初始值 | 必须指定。|
+
+| @Consume变量装饰器 | 说明  |
+| -------------- | ------ |
+| 装饰器参数 | 别名：常量字符串，可选。如果提供了别名，则必须有@Provide的变量和其有相同的别名才可以匹配成功；否则，则需要变量名相同才能匹配成功。 |
+| 同步类型  | 双向：从@Provide变量（具体请参见@Provide）到所有@Consume变量，以及相反的方向。双向同步操作与@State和@Link的组合相同。 |
+| 允许装饰的变量类型 | Object、class、string、number、boolean、enum类型，以及这些类型的数组。嵌套类型的场景请参考[观察变化](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-provide-and-consume-0000001473857338-V2#section7141136115513)。不支持any，不允许使用undefined和null。必须指定类型。@Provide变量的@Consume变量的类型必须相同。@Consume装饰的变量，在其父节点或者祖先节点上，必须有对应的属性和别名的@Provide装饰的变量。 |
+| 被装饰变量的初始值 | 无，禁止本地初始化。|
+
+##### 变量的传递/访问规则说明
+
+| @Provide传递/访问    | 说明   |
+| -------- | ---------- |
+| 从父组件初始化和更新 | 可选，允许父组件中常规变量、@State、@Link、@Prop、@Provide、@Consume、@ObjectLink、@StorageLink、@StorageProp、@LocalStorageLink和@LocalStorageProp装饰的变量装饰变量初始化子组件@Provide。 |
+| 用于初始化子组件 | 允许，可用于初始化@State、@Link、@Prop、@Provide。 |
+| 和父组件同步  | 否。 |
+| 和后代组件同步 | 和@Consume双向同步。|
+| 是否支持组件外访问 | 私有，仅可以在所属组件内访问。|
+
+**图1** @Provide初始化规则图示
+
+![2-21](./pic/2-21.png)
+
+| @Consume传递/访问  | 说明   |
+| ----------- | -------- |
+| 从父组件初始化和更新 | 禁止。通过相同的变量名和alias（别名）从@Provide初始化。 |
+| 用于初始化子组件     | 允许，可用于初始化@State、@Link、@Prop、@Provide。 |
+| 和祖先组件同步      | 和@Provide双向同步。|
+| 是否支持组件外访问   | 私有，仅可以在所属组件内访问|
+
+**图2** @Consume初始化规则图示
+
+![2-22](./pic/2-22.png)
+
+##### 观察变化和行为表现
+
+###### 观察变化
+
+- 当装饰的数据类型为boolean、string、number类型时，可以观察到数值的变化。
+- 当装饰的数据类型为class或者Object的时候，可以观察到赋值和属性赋值的变化（属性为Object.keys(observedObject)返回的所有属性）。
+- 当装饰的对象是array的时候，可以观察到数组的添加、删除、更新数组单元。
+
+###### 框架行为
+
+1. 初始渲染：
+   1. @Provide装饰的变量会以map的形式，传递给当前@Provide所属组件的所有子组件；
+   2. 子组件中如果使用@Consume变量，则会在map中查找是否有该变量名/alias（别名）对应的@Provide的变量，如果查找不到，框架会抛出JS ERROR;
+   3. 在初始化@Consume变量时，和@State/@Link的流程类似，@Consume变量会保存在map中查找到的@Provide变量，并把自己注册给@Provide。
+2. 当@Provide装饰的数据变化时：
+   1. 通过初始渲染的步骤可知，子组件@Consume已把自己注册给父组件。父组件@Provide变量变更后，会遍历更新所有依赖它的系统组件（elementid）和状态变量（@Consume）；
+   2. 通知@Consume更新后，子组件所有依赖@Consume的系统组件（elementId）都会被通知更新。以此实现@Provide对@Consume状态数据同步。
+3. 当@Consume装饰的数据变化时：
+   1. 通过初始渲染的步骤可知，子组件@Consume持有@Provide的实例。在@Consume更新后调用@Provide的更新方法，将更新的数值同步回@Provide，以此实现@Consume向@Provide的同步更新。
+
+##### 使用场景
+
+在下面的示例是与后代组件双向同步状态@Provide和@Consume场景。当分别点击CompA和CompD组件内Button时，reviewVotes 的更改会双向同步在CompA和CompD中。
+
+```typescript
+@Component
+struct CompD {
+  // @Consume装饰的变量通过相同的属性名绑定其祖先组件CompA内的@Provide装饰的变量
+  @Consume reviewVotes: number;
+
+  build() {
+    Column() {
+      Text(`reviewVotes(${this.reviewVotes})`)
+      Button(`reviewVotes(${this.reviewVotes}), give +1`)
+        .onClick(() => this.reviewVotes += 1)
+    }
+    .width('50%')
+  }
+}
+
+@Component
+struct CompC {
+  build() {
+    Row({ space: 5 }) {
+      CompD()
+      CompD()
+    }
+  }
+}
+
+@Component
+struct CompB {
+  build() {
+    CompC()
+  }
+}
+
+@Entry
+@Component
+struct CompA {
+  // @Provide装饰的变量reviewVotes由入口组件CompA提供其后代组件
+  @Provide reviewVotes: number = 0;
+
+  build() {
+    Column() {
+      Button(`reviewVotes(${this.reviewVotes}), give +1`)
+        .onClick(() => this.reviewVotes += 1)
+      CompB()
+    }
+  }
+}
+```
+
+
+
+#### @Observed装饰器和@ObjectLink装饰器：嵌套类对象属性变化
+
+上文所述的装饰器仅能观察到第一层的变化，但是在实际应用开发中，应用会根据开发需要，封装自己的数据模型。对于多层嵌套的情况，比如二维数组，或者数组项class，或者class的属性是class，他们的第二层的属性变化是无法观察到的。这就引出了@Observed/@ObjectLink装饰器。
+
+> 从API version 9开始，这两个装饰器支持在ArkTS卡片中使用。
+
+##### 概述
+
+@ObjectLink和@Observed类装饰器用于在涉及嵌套对象或数组的场景中进行双向数据同步：
+
+- 被@Observed装饰的类，可以被观察到属性的变化；
+- 子组件中@ObjectLink装饰器装饰的状态变量用于接收@Observed装饰的类的实例，和父组件中对应的状态变量建立双向数据绑定。这个实例可以是数组中的被@Observed装饰的项，或者是class object中的属性，这个属性同样也需要被@Observed装饰。
+- 单独使用@Observed是没有任何作用的，需要搭配@ObjectLink或者@Prop使用。
+
+##### 限制条件
+
+- 使用@Observed装饰class会改变class原始的原型链，@Observed和其他类装饰器装饰同一个class可能会带来问题。
+- @ObjectLink装饰器不能在@Entry装饰的自定义组件中使用。
+
+##### 装饰器说明
+
+| @Observed类装饰器 | 说明 |
+| ---------- | ---------- |
+| 装饰器参数 | 无  |
+| 类装饰器   | 装饰class。需要放在class的定义前，使用new创建类对象。 |
+
+| @ObjectLink变量装饰器 | 说明 |
+| ----------- | ------------- |
+| 装饰器参数 | 无 |
+| 同步类型     | 不与父组件中的任何类型同步变量。    |
+| 允许装饰的变量类型 | 必须为被@Observed装饰的class实例，必须指定类型。不支持简单类型，可以使用@Prop。@ObjectLink的属性是可以改变的，但是变量的分配是不允许的，也就是说这个装饰器装饰变量是只读的，不能被改变。 |
+| 被装饰变量的初始值  | 不允许。 |
+
+@ObjectLink装饰的数据为可读示例。
+
+```typescript
+// 允许@ObjectLink装饰的数据属性赋值
+this.objLink.a= ...
+// 不允许@ObjectLink装饰的数据自身赋值
+this.objLink= ...
+```
+
+说明
+
+@ObjectLink装饰的变量不能被赋值，如果要使用赋值操作，请使用[@Prop](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-prop-0000001473537702-V2)。
+
+- @Prop装饰的变量和数据源的关系是是单向同步，@Prop装饰的变量在本地拷贝了数据源，所以它允许本地更改，如果父组件中的数据源有更新，@Prop装饰的变量本地的修改将被覆盖；
+- @ObjectLink装饰的变量和数据源的关系是双向同步，@ObjectLink装饰的变量相当于指向数据源的指针。如果一旦发生@ObjectLink装饰的变量的赋值，则同步链将被打断。
+
+##### 变量的传递/访问规则说明
+
+| @ObjectLink传递/访问 | 说明                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| 从父组件初始化       | 必须指定。初始化@ObjectLink装饰的变量必须同时满足以下场景：类型必须是@Observed装饰的class。初始化的数值需要是数组项，或者class的属性。同步源的class或者数组必须是@State，@Link，@Provide，@Consume或者@ObjectLink装饰的数据。同步源是数组项的示例请参考[对象数组](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-observed-and-objectlink-0000001473697338-V2#section99561777591)。初始化的class的示例请参考[嵌套对象](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-observed-and-objectlink-0000001473697338-V2#section614118685518)。 |
+| 与源对象同步         | 双向。                                                       |
+| 可以初始化子组件     | 允许，可用于初始化常规变量、@State、@Link、@Prop、@Provide   |
+
+**图1** 初始化规则图示
+
+![2-23](./pic/2-23.png)
+
+##### 观察变化和行为表现
+
+###### 观察的变化
+
+@Observed装饰的类，如果其属性为非简单类型，比如class、Object或者数组，也需要被@Observed装饰，否则将观察不到其属性的变化。
+
+```typescript
+class ClassA {
+  public c: number;
+
+  constructor(c: number) {
+    this.c = c;
+  }
+}
+
+@Observed
+class ClassB {
+  public a: ClassA;
+  public b: number;
+
+  constructor(a: ClassA, b: number) {
+    this.a = a;
+    this.b = b;
+  }
+}
+```
+
+以上示例中，ClassB被@Observed装饰，其成员变量的赋值的变化是可以被观察到的，但对于ClassA，没有被@Observed装饰，其属性的修改不能被观察到。
+
+```typescript
+@ObjectLink b: ClassB
+
+// 赋值变化可以被观察到
+this.b.a = new ClassA(5)
+this.b.b = 5
+
+// ClassA没有被@Observed装饰，其属性的变化观察不到
+this.b.a.c = 5
+```
+
+@ObjectLink：@ObjectLink只能接收被@Observed装饰class的实例，可以观察到：
+
+- 其属性的数值的变化，其中属性是指Object.keys(observedObject)返回的所有属性，示例请参考[嵌套对象](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-observed-and-objectlink-0000001473697338-V2#section614118685518)。
+
+- 如果数据源是数组，则可以观察到数组item的替换，如果数据源是class，可观察到class的属性的变化，示例请参考[对象数组](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-observed-and-objectlink-0000001473697338-V2#section99561777591)。
+
+###### 框架行为
+
+1. 初始渲染：
+   1. @Observed装饰的class的实例会被不透明的代理对象包装，代理了class上的属性的setter和getter方法
+   2. 子组件中@ObjectLink装饰的从父组件初始化，接收被@Observed装饰的class的实例，@ObjectLink的包装类会将自己注册给@Observed class。
+2. 属性更新：当@Observed装饰的class属性改变时，会走到代理的setter和getter，然后遍历依赖它的@ObjectLink包装类，通知数据更新。
+
+##### 使用场景
+
+###### 嵌套对象
+
+以下是嵌套类对象的数据结构。
+
+```typescript
+// objectLinkNestedObjects.ets
+let NextID: number = 1;
+
+@Observed
+class ClassA {
+  public id: number;
+  public c: number;
+
+  constructor(c: number) {
+    this.id = NextID++;
+    this.c = c;
+  }
+}
+
+@Observed
+class ClassB {
+  public a: ClassA;
+
+  constructor(a: ClassA) {
+    this.a = a;
+  }
+}
+```
+
+以下组件层次结构呈现的是嵌套类对象的数据结构。
+
+```typescript
+@Component
+struct ViewA {
+  label: string = 'ViewA1';
+  @ObjectLink a: ClassA;
+
+  build() {
+    Row() {
+      Button(`ViewA [${this.label}] this.a.c=${this.a.c} +1`)
+        .onClick(() => {
+          this.a.c += 1;
+        })
+    }
+  }
+}
+
+@Entry
+@Component
+struct ViewB {
+  @State b: ClassB = new ClassB(new ClassA(0));
+
+  build() {
+    Column() {
+      // in low version,DevEco may throw a warning,but it does not matter.
+      // you can still compile and run.
+      ViewA({ label: 'ViewA #1', a: this.b.a })
+      ViewA({ label: 'ViewA #2', a: this.b.a })
+
+      Button(`ViewB: this.b.a.c+= 1`)
+        .onClick(() => {
+          this.b.a.c += 1;
+        })
+      Button(`ViewB: this.b.a = new ClassA(0)`)
+        .onClick(() => {
+          this.b.a = new ClassA(0);
+        })
+      Button(`ViewB: this.b = new ClassB(ClassA(0))`)
+        .onClick(() => {
+          this.b = new ClassB(new ClassA(0));
+        })
+    }
+  }
+}
+```
+
+ViewB中的事件句柄：
+
+- this.b.a = new ClassA(0) 和this.b = new ClassB(new ClassA(0))： 对@State装饰的变量b和其属性的修改。
+- this.b.a.c = ... ：该变化属于第二层的变化，[@State](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-state-0000001474017162-V2#section135631413173517)无法观察到第二层的变化，但是ClassA被@Observed装饰，ClassA的属性c的变化可以被@ObjectLink观察到。
+
+ViewA中的事件句柄：
+
+- this.a.c += 1：对@ObjectLink变量a的修改，将触发Button组件的刷新。@ObjectLink和@Prop不同，@ObjectLink不拷贝来自父组件的数据源，而是在本地构建了指向其数据源的引用。
+- @ObjectLink变量是只读的，this.a = new ClassA(...)是不允许的，因为一旦赋值操作发生，指向数据源的引用将被重置，同步将被打断。
+
+###### 对象数组
+
+对象数组是一种常用的数据结构。以下示例展示了数组对象的用法。
+
+```typescript
+let NextID: number = 1;
+
+@Observed
+class ClassA {
+  public id: number;
+  public c: number;
+
+  constructor(c: number) {
+    this.id = NextID++;
+    this.c = c;
+  }
+}
+@Component
+struct ViewA {
+  // 子组件ViewA的@ObjectLink的类型是ClassA
+  @ObjectLink a: ClassA;
+  label: string = 'ViewA1';
+
+  build() {
+    Row() {
+      Button(`ViewA [${this.label}] this.a.c = ${this.a.c} +1`)
+        .onClick(() => {
+          this.a.c += 1;
+        })
+    }
+  }
+}
+
+@Entry
+@Component
+struct ViewB {
+  // ViewB中有@State装饰的ClassA[]
+  @State arrA: ClassA[] = [new ClassA(0), new ClassA(0)];
+
+  build() {
+    Column() {
+      ForEach(this.arrA,
+        (item) => {
+          ViewA({ label: `#${item.id}`, a: item })
+        },
+        (item) => item.id.toString()
+      )
+      // 使用@State装饰的数组的数组项初始化@ObjectLink，其中数组项是被@Observed装饰的ClassA的实例
+      ViewA({ label: `ViewA this.arrA[first]`, a: this.arrA[0] })
+      ViewA({ label: `ViewA this.arrA[last]`, a: this.arrA[this.arrA.length-1] })
+
+      Button(`ViewB: reset array`)
+        .onClick(() => {
+          this.arrA = [new ClassA(0), new ClassA(0)];
+        })
+      Button(`ViewB: push`)
+        .onClick(() => {
+          this.arrA.push(new ClassA(0))
+        })
+      Button(`ViewB: shift`)
+        .onClick(() => {
+          this.arrA.shift()
+        })
+      Button(`ViewB: chg item property in middle`)
+        .onClick(() => {
+          this.arrA[Math.floor(this.arrA.length / 2)].c = 10;
+        })
+      Button(`ViewB: chg item property in middle`)
+        .onClick(() => {
+          this.arrA[Math.floor(this.arrA.length / 2)] = new ClassA(11);
+        })
+    }
+  }
+}
+```
+
+- this.arrA[Math.floor(this.arrA.length/2)] = new ClassA(..) ：该状态变量的改变触发2次更新：
+  1. ForEach：数组项的赋值导致ForEach的[itemGenerator](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-rendering-control-foreach-0000001524537153-V2#section611414423523)被修改，因此数组项被识别为有更改，ForEach的item builder将执行，创建新的ViewA组件实例。
+  2. ViewA({ label: `ViewA this.arrA[last]`, a: this.arrA[this.arrA.length-1] })：上述更改改变了数组中第二个元素，所以绑定this.arrA[1]的ViewA将被更新；
+- this.arrA.push(new ClassA(0)) ： 将触发2次不同效果的更新：
+  1. ForEach：新添加的ClassA对象对于ForEach是未知的[itemGenerator](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-rendering-control-foreach-0000001524537153-V2#section611414423523)，ForEach的item builder将执行，创建新的ViewA组件实例。
+  2. ViewA({ label: `ViewA this.arrA[last]`, a: this.arrA[this.arrA.length-1] })：数组的最后一项有更改，因此引起第二个ViewA的实例的更改。对于ViewA({ label: `ViewA this.arrA[first]`, a: this.arrA[0] })，数组的更改并没有触发一个数组项更改的改变，所以第一个ViewA不会刷新。
+- this.arrA[Math.floor(this.arrA.length/2)].c：[@State](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides-V2/arkts-state-0000001474017162-V2#section135631413173517)无法观察到第二层的变化，但是ClassA被@Observed装饰，ClassA的属性的变化将被@ObjectLink观察到。
+
+###### 二维数组
+
+使用@Observed观察二维数组的变化。可以声明一个被@Observed装饰的继承Array的子类。
+
+```typescript
+@Observed
+class StringArray extends Array<String> {
+}
+```
+
+使用new StringArray()来构造StringArray的实例，new运算符使得@Observed生效，@Observed观察到StringArray的属性变化。
+
+声明一个从Array扩展的类class StringArray extends Array<String> {}，并创建StringArray的实例。@Observed装饰的类需要使用new运算符来构建class实例。
+
+```typescript
+@Observed
+class StringArray extends Array<String> {
+}
+
+@Component
+struct ItemPage {
+  @ObjectLink itemArr: StringArray;
+
+  build() {
+    Row() {
+      Text('ItemPage')
+        .width(100).height(100)
+
+      ForEach(this.itemArr,
+        item => {
+          Text(item)
+            .width(100).height(100)
+        },
+        item => item
+      )
+    }
+  }
+}
+
+@Entry
+@Component
+struct IndexPage {
+  @State arr: Array<StringArray> = [new StringArray(), new StringArray(), new StringArray()];
+
+  build() {
+    Column() {
+      ItemPage({ itemArr: this.arr[0] })
+      ItemPage({ itemArr: this.arr[1] })
+      ItemPage({ itemArr: this.arr[2] })
+
+      Divider()
+
+      ForEach(this.arr,
+        itemArr => {
+          ItemPage({ itemArr: itemArr })
+        },
+        itemArr => itemArr[0]
+      )
+
+      Divider()
+
+      Button('update')
+        .onClick(() => {
+          console.error('Update all items in arr');
+          if (this.arr[0][0] !== undefined) {
+            // 正常情况下需要有一个真实的ID来与ForEach一起使用，但此处没有
+            // 因此需要确保推送的字符串是唯一的。
+            this.arr[0].push(`${this.arr[0].slice(-1).pop()}${this.arr[0].slice(-1).pop()}`);
+            this.arr[1].push(`${this.arr[1].slice(-1).pop()}${this.arr[1].slice(-1).pop()}`);
+            this.arr[2].push(`${this.arr[2].slice(-1).pop()}${this.arr[2].slice(-1).pop()}`);
+          } else {
+            this.arr[0].push('Hello');
+            this.arr[1].push('World');
+            this.arr[2].push('!');
+          }
+        })
+    }
+  }
+}
+```
 
 
 
 ## 渲染控制（未完成）
 
 
-
-## 实战
-
-> 具体代码查看ArkTsBaase
-
-### 代码结构
-
-├──entry/src/main/ets               // 代码区    
-│  ├──common                        // 公共文件目录
-│  │  └──constants                  
-│  │     └──Constants.ets           // 常量
-│  ├──entryability
-│  │  └──EntryAbility.ts            // 应用的入口
-│  ├──model                         
-│  │  └──DataModel.ets              // 模拟数据
-│  ├──pages
-│  │  └──RankPage.ets               // 入口页面
-│  ├──view                          // 自定义组件目录
-│  │  ├──ListHeaderComponent.ets  //列表头部样式组件
-│  │  ├──ListItemComponent.ets
-│  │  └──TitleComponent.ets    //标题组件
-│  └──viewmodel        
-│     ├──RankData.ets               // 实体类
-│     └──RankViewModel.ets          // 视图业务逻辑类
-└──entry/src/main/resources	    // 资源文件目录
-
-### 使用@Link封装标题组件
-
-> 在TitleComponent文件中，首先使用struct对象创建自定义组件，然后使用@Link修饰器管理TitleComponent组件内的状态变量isRefreshData，状态变量isRefreshData值发生改变后，通过@Link装饰器通知页面刷新List中的数据。
-
-```typescript
-// TitleComponent.ets
-...
-@Component
-export struct TitleComponent {
-  @Link isRefreshData: boolean; // 判断是否刷新数据
-  @State title: Resource = $r('app.string.title_default');
-
-  build() {
-    Row() {
-      ...
-      Row() {
-        Image($r('app.media.loading'))
-          .height(TitleBarStyle.IMAGE_LOADING_SIZE)
-          .width(TitleBarStyle.IMAGE_LOADING_SIZE)
-          .onClick(() => {
-            this.isRefreshData = !this.isRefreshData;
-          })
-      }
-      .width(TitleBarStyle.WEIGHT)
-      .height(WEIGHT)
-      .justifyContent(FlexAlign.End)
-    }
-   ...
-  }
-}
-```
-
-### 封装列表头部样式组件
-
-> 在ListHeaderComponent文件中，我们使用常规成员变量来设置自定义组件ListHeaderComponent的widthValue和paddingValue。
-
-```typescript
-// ListHeaderComponent.ets
-...
-@Component
-export struct ListHeaderComponent {
-  paddingValue: Padding | Length = 0;
-  widthValue: Length = 0;
-
-  build() {
-    Row() {
-      Text($r('app.string.page_number'))
-        .fontSize(FontSize.SMALL)
-        .width(ListHeaderStyle.LAYOUT_WEIGHT_LEFT)
-        .fontWeight(ListHeaderStyle.FONT_WEIGHT)
-        .fontColor($r('app.color.font_description'))
-      Text($r('app.string.page_type'))
-        .fontSize(FontSize.SMALL)
-        .width(ListHeaderStyle.LAYOUT_WEIGHT_CENTER)
-        .fontWeight(ListHeaderStyle.FONT_WEIGHT)
-        .fontColor($r('app.color.font_description'))
-      Text($r('app.string.page_vote'))
-        .fontSize(FontSize.SMALL)
-        .width(ListHeaderStyle.LAYOUT_WEIGHT_RIGHT)
-        .fontWeight(ListHeaderStyle.FONT_WEIGHT)
-        .fontColor($r('app.color.font_description'))
-    }
-    .width(this.widthValue)
-    .padding(this.paddingValue)
-  }
-}
-```
-
-### 创建ListItemComponent
-
-> 为了体现@Prop单向绑定功能，我们在ListItemComponent组件中添加了一个@Prop修饰的字段isSwitchDataSource，当通过点击改变ListItemComponent组件中isSwitchDataSource状态时，ListItemComponent作为List的子组件，并不会通知其父组件List刷新状态。
->
-> 在代码中，我们使用@State管理ListItemComponent中的 isChange 状态，当用户点击ListItemComponent时，ListItemComponent组件中的文本颜色发生变化。我们使用条件渲染控制语句，创建的圆型文本组件。
-
-```typescript
-// ListItemComponent.ets
-...
-@Component
-export struct ListItemComponent {
-  index?: number;
-  private name?: Resource;
-  @Prop vote: string = '';
-  @Prop isSwitchDataSource: boolean = false;
-  // 判断是否改变ListItemComponent字体颜色
-  @State isChange: boolean = false;
-
-  build() {
-    Row() {
-      Column() {
-        if (this.isRenderCircleText()) {
-          if (this.index !== undefined) {
-            this.CircleText(this.index);
-          }
-        } else {
-          Text(this.index?.toString())
-            .lineHeight(ItemStyle.TEXT_LAYOUT_SIZE)
-            .textAlign(TextAlign.Center)
-            .width(ItemStyle.TEXT_LAYOUT_SIZE)
-            .fontWeight(FontWeight.BOLD)
-            .fontSize(FontSize.SMALL)
-        }
-      }
-      .width(ItemStyle.LAYOUT_WEIGHT_LEFT)
-      .alignItems(HorizontalAlign.Start)
-
-      Text(this.name)
-        .width(ItemStyle.LAYOUT_WEIGHT_CENTER)
-        .fontWeight(FontWeight.BOLDER)
-        .fontSize(FontSize.MIDDLE)
-        .fontColor(this.isChange ? ItemStyle.COLOR_BLUE : ItemStyle.COLOR_BLACK)
-      Text(this.vote)
-        .width(ItemStyle.LAYOUT_WEIGHT_RIGHT)
-        .fontWeight(FontWeight.BOLD)
-        .fontSize(FontSize.SMALL)
-        .fontColor(this.isChange ? ItemStyle.COLOR_BLUE : ItemStyle.COLOR_BLACK)
-    }
-    .height(ItemStyle.BAR_HEIGHT)
-    .width(WEIGHT)
-    .onClick(() => {
-      this.isSwitchDataSource = !this.isSwitchDataSource;
-      this.isChange = !this.isChange;
-    })
-  }
-  ...
-}
-```
-
-### 创建RankList
-
-> 为了简化代码，提高代码的可读性，我们使用@Builder描述排行列表布局内容，使用循环渲染组件ForEach创建ListItem。
-
-```typescript
-// RankPage.ets
-...
-  build() {
-    Column() {
-      // 顶部标题组件
-      TitleComponent({ isRefreshData: $isSwitchDataSource, title: TITLE })
-      // 列表头部样式
-      ListHeaderComponent({
-        paddingValue: { 
-          left: Style.RANK_PADDING,
-          right: Style.RANK_PADDING 
-        },
-        widthValue: Style.CONTENT_WIDTH
-      })
-        .margin({ 
-          top: Style.HEADER_MARGIN_TOP,
-          bottom: Style.HEADER_MARGIN_BOTTOM 
-        })
-      // 列表区域
-      this.RankList(Style.CONTENT_WIDTH)
-    }
-    .backgroundColor($r('app.color.background'))
-    .height(WEIGHT)
-    .width(WEIGHT)
-  }
-
-  @Builder RankList(widthValue: Length) {
-    Column() {
-      List() {
-        ForEach(this.isSwitchDataSource ? this.dataSource1 : this.dataSource2,
-          (item: RankData, index?: number) => {
-            ListItem() {
-              ListItemComponent({ index: (Number(index) + 1), name: item.name, vote: item.vote,
-                isSwitchDataSource: this.isSwitchDataSource
-              })
-            }
-          }, (item: RankData) => JSON.stringify(item))
-      }
-      .width(WEIGHT)
-      .height(Style.LIST_HEIGHT)
-      .divider({ strokeWidth: Style.STROKE_WIDTH })
-    }
-    .padding({ 
-      left: Style.RANK_PADDING,
-      right: Style.RANK_PADDING 
-    })
-    .borderRadius(Style.BORDER_RADIUS)
-    .width(widthValue)
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor(Color.White)
-  }
-...
-```
-
-### 使用自定义组件生命周期函数
-
-> 我们通过点击系统导航返回按钮来演示onBackPress回调方法的使用，在指定的时间段内，如果满足退出条件，onBackPress将返回false，系统默认关闭当前页面。否则，提示用户需要再点击一次才能退出，同时onBackPress返回true，表示用户自己处理导航返回事件。
-
-```typescript
-// RankPage.ets
-... 
-@Entry
-@Component
-struct RankPage {
-  ...
-  onBackPress() {
-    if (this.isShowToast()) {
-      prompt.showToast({
-        message: $r('app.string.prompt_text'),
-        duration: TIME
-      });
-      this.clickBackTimeRecord = new Date().getTime();
-      return true;
-    }
-    return false;
-  }
-  ...
-}
-```
 
