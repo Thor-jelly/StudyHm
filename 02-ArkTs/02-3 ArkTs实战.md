@@ -2,26 +2,13 @@
 
 > 具体代码查看ArkTsBaase
 
+## 效果
+
+<img src="./pic/3-2.gif" alt="3-2" style="zoom: 33%;" />
+
 ### 代码结构
 
-├──entry/src/main/ets               // 代码区    
-│  ├──common                        // 公共文件目录
-│  │  └──constants                  
-│  │     └──Constants.ets           // 常量
-│  ├──entryability
-│  │  └──EntryAbility.ts            // 应用的入口
-│  ├──model                         
-│  │  └──DataModel.ets              // 模拟数据
-│  ├──pages
-│  │  └──RankPage.ets               // 入口页面
-│  ├──view                          // 自定义组件目录
-│  │  ├──ListHeaderComponent.ets  //列表头部样式组件
-│  │  ├──ListItemComponent.ets
-│  │  └──TitleComponent.ets    //标题组件
-│  └──viewmodel        
-│     ├──RankData.ets               // 实体类
-│     └──RankViewModel.ets          // 视图业务逻辑类
-└──entry/src/main/resources	    // 资源文件目录
+<img src="./pic/3-1.png" alt="3-1" style="zoom:50%;" />
 
 ### 使用@Link封装标题组件
 
@@ -104,7 +91,7 @@ export struct ListHeaderComponent {
 export struct ListItemComponent {
   index?: number;
   private name?: Resource;
-  @Prop vote: string = '';
+  private vote: string = '';
   @Prop isSwitchDataSource: boolean = false;
   // 判断是否改变ListItemComponent字体颜色
   @State isChange: boolean = false;
@@ -121,7 +108,7 @@ export struct ListItemComponent {
             .lineHeight(ItemStyle.TEXT_LAYOUT_SIZE)
             .textAlign(TextAlign.Center)
             .width(ItemStyle.TEXT_LAYOUT_SIZE)
-            .fontWeight(FontWeight.BOLD)
+            .fontWeight(FontWeight.Bold)
             .fontSize(FontSize.SMALL)
         }
       }
@@ -130,12 +117,12 @@ export struct ListItemComponent {
 
       Text(this.name)
         .width(ItemStyle.LAYOUT_WEIGHT_CENTER)
-        .fontWeight(FontWeight.BOLDER)
+        .fontWeight(FontWeight.Bolder)
         .fontSize(FontSize.MIDDLE)
         .fontColor(this.isChange ? ItemStyle.COLOR_BLUE : ItemStyle.COLOR_BLACK)
       Text(this.vote)
         .width(ItemStyle.LAYOUT_WEIGHT_RIGHT)
-        .fontWeight(FontWeight.BOLD)
+        .fontWeight(FontWeight.Bold)
         .fontSize(FontSize.SMALL)
         .fontColor(this.isChange ? ItemStyle.COLOR_BLUE : ItemStyle.COLOR_BLACK)
     }
@@ -187,7 +174,10 @@ export struct ListItemComponent {
         ForEach(this.isSwitchDataSource ? this.dataSource1 : this.dataSource2,
           (item: RankData, index?: number) => {
             ListItem() {
-              ListItemComponent({ index: (Number(index) + 1), name: item.name, vote: item.vote,
+              ListItemComponent({ 
+                index: index + 1),
+                name: item.name,
+                vote: item.vote,
                 isSwitchDataSource: this.isSwitchDataSource
               })
             }
