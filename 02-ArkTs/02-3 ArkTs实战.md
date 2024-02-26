@@ -1,4 +1,4 @@
-## 基础知识实战
+# 基础知识实战-水果排行榜
 
 > 具体代码查看ArkTsBaase
 
@@ -6,11 +6,11 @@
 
 <img src="./pic/3-2.gif" alt="3-2" style="zoom: 33%;" />
 
-### 代码结构
+## 代码结构
 
 <img src="./pic/3-1.png" alt="3-1" style="zoom:50%;" />
 
-### 使用@Link封装标题组件
+## 使用@Link封装标题组件
 
 > 在TitleComponent文件中，首先使用struct对象创建自定义组件，然后使用@Link修饰器管理TitleComponent组件内的状态变量isRefreshData，状态变量isRefreshData值发生改变后，通过@Link装饰器通知页面刷新List中的数据。
 
@@ -42,7 +42,7 @@ export struct TitleComponent {
 }
 ```
 
-### 封装列表头部样式组件
+## 封装列表头部样式组件
 
 > 在ListHeaderComponent文件中，我们使用常规成员变量来设置自定义组件ListHeaderComponent的widthValue和paddingValue。
 
@@ -78,7 +78,7 @@ export struct ListHeaderComponent {
 }
 ```
 
-### 创建ListItemComponent
+## 创建ListItemComponent
 
 > 为了体现@Prop单向绑定功能，我们在ListItemComponent组件中添加了一个@Prop修饰的字段isSwitchDataSource，当通过点击改变ListItemComponent组件中isSwitchDataSource状态时，ListItemComponent作为List的子组件，并不会通知其父组件List刷新状态。
 >
@@ -137,7 +137,7 @@ export struct ListItemComponent {
 }
 ```
 
-### 创建RankList
+## 创建RankList
 
 > 为了简化代码，提高代码的可读性，我们使用@Builder描述排行列表布局内容，使用循环渲染组件ForEach创建ListItem。
 
@@ -199,7 +199,7 @@ export struct ListItemComponent {
 ...
 ```
 
-### 使用自定义组件生命周期函数
+## 使用自定义组件生命周期函数
 
 > 我们通过点击系统导航返回按钮来演示onBackPress回调方法的使用，在指定的时间段内，如果满足退出条件，onBackPress将返回false，系统默认关闭当前页面。否则，提示用户需要再点击一次才能退出，同时onBackPress返回true，表示用户自己处理导航返回事件。
 
@@ -222,6 +222,104 @@ struct RankPage {
     return false;
   }
   ...
+}
+```
+
+
+
+# 基础知识实战-待办列表
+
+> 具体代码查看ToDoList
+
+## 效果
+
+<img src="./pic/3-4.gif" alt="3-4" style="zoom:33%;" />
+
+## 代码结构
+
+<img src="./pic/3-3.png" alt="3-3" style="zoom:50%;" />
+
+## 构建主界面
+
+主页面的实现，采用Column容器嵌套ForEach完成页面整体布局，页面分为两个部分：
+
+- 标题区：使用Text组件显示“待办”标题。
+- 数据列表：使用ForEach循环渲染自定义组件ToDoItem。
+
+
+
+在aboutToAppear生命周期中初始化待办数据totalTasks，在build方法中编写主页面布局，使用Text文本组件显示标题，使用ForEach循环渲染自定义组件ToDoItem。
+
+```typescript
+// EntryAbility.ts
+onWindowStageCreate(windowStage: Window.WindowStage) {
+  ...
+  windowStage.loadContent('pages/ToDoListPage', (err, data) => {
+    ...
+  });
+}
+```
+
+```typescript
+// ToDoListPage.ets
+import ToDoItem'../view/ToDoItem';
+...
+@Entry
+@Component
+struct ToDoListPage {
+  private totalTasks: Array<string> = [];
+
+  aboutToAppear() {
+    this.totalTasks = DataModel.getData();
+  }
+
+  build() {
+    Column({ space: CommonConstants.COLUMN_SPACE }) {
+      Text($r('app.string.page_title'))
+        ...
+      ForEach(this.totalTasks, (item: string) => {
+        ToDoItem({ content: item })
+      }, (item: string) => JSON.stringify(item))
+    }
+    ...
+  }
+}
+```
+
+## 自定义子组件
+
+显示的文本内容为入参content，使用@State修饰参数isComplete来管理当前事项的完成状态。当点击当前ToDoItem时，触发Row组件的onClick事件，更新isComplete的值，isComplete的改变将会刷新使用该状态变量的UI组件。具体表现为：当前点击的ToDoItem中，labelIcon图片的替换、文本透明度opacity属性的变化、文本装饰线decoration的显隐。
+
+```typescript
+// ToDoItem.ets
+...
+@Component
+export default struct ToDoItem {
+  private content?: string;
+  @State isComplete: boolean = false;
+  
+ @Builder labelIcon(icon: Resource) {
+    Image(icon)
+      ...
+  }
+
+  build() {
+    Row() {
+      if (this.isComplete) {
+        this.labelIcon($r('app.media.ic_ok'));
+      } else {
+        this.labelIcon($r('app.media.ic_default'));
+      }
+      Text(this.content)
+        ...
+        .opacity(this.isComplete ? CommonConstants.OPACITY_COMPLETED : CommonConstants.OPACITY_DEFAULT)
+        .decoration({ type: this.isComplete ? TextDecorationType.LineThrough : TextDecorationType.None })
+    }
+    ...
+    .onClick(() => {
+      this.isComplete = !this.isComplete;
+    })
+  }
 }
 ```
 
