@@ -361,7 +361,7 @@ while(index < s.length){
   	//可见性操作符，默认为public
   	public name: string = 'zs'
   	//私有的
-  	private age: number = 18
+  	private _age: number = 18
   	isMale: boolean = true
   	
   	constructor(name: string, age: number, isMale: boolean){
@@ -371,7 +371,7 @@ while(index < s.length){
   	}
   	
   	get age(): number{
-  		return this.age
+  		return this._age
   	}
   	
   	set age(age: number){
