@@ -234,3 +234,211 @@ export default class EntryAbility extends UIAbility {
 
 ### 获取上下文UIAbilityContext
 
+UIAbility类拥有自身的上下文信息，该信息为UIAbilityContext类的实例，UIAbilityContext类拥有abilityInfo、currentHapModuleInfo等属性。
+
+通过UIAbilityContext可以获取UIAbility的相关配置信息，如包代码路径、Bundle名称Ability名称和应用程序需要的环境状态等属性信息，以及可以获取操作UIAbility实例的方法（startAbility()、connectServiceExtensionAbility()、terminateSelf()等）。
+
+如需要在页面中获取当前Ability的Context，可以调用getContext接口获取当前页面关联的UIAbilityContext或ExtensionContext。
+
+
+
+在UIAbility红获取上下文信息
+
+```
+export default class EntryAbility extends UIAbility {
+		onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+			let context = this.context;//在UIAbility中获取上下文信息
+		}
+}
+```
+
+
+
+在页面中获取上下文信息
+
+```
+@Entry
+@Component
+struct Index {
+	@State message: string = CommonConstants.INDEX_MESSAGE;
+	private context = getContext(this) as common.UIAbilityContext
+	
+	startAbilityTest() {
+		let want: Want = {}
+		
+		this.context.startAbility(want)
+	}
+}
+```
+
+
+
+# UIAbility组件与UI的数据同步
+
+
+
+## 实现方式
+
+1. 使用EventHub进行数据通信：在基类Context中提供了EventHub对象，可以通过发布订阅方式来实现事件的传递。
+
+   在事件传递前，订阅者需要先进行订阅，当发布者发布事件时，订阅者将接收到事件并进行相应处理。
+
+2. 使用AppStorage/LocalStorage进行数据同步
+
+   ArkUI提供了AppStorage和LocalStorage两种应用级别的状态管理方案，可用于实现应用级别和UIAbility级别的的数据同步。
+
+
+
+## EventHub
+
+EventHub为UIAbility组件提供了事件机制，使它们能够进行订阅、取消订阅和触发事件等数据通信能力。
+
+基类Context提供了EventHub对象，可用于在UIAbility组件实例内通信。
+
+1. 在UIAbility中调用eventHub.on()方法注册一个自定义事件'event1'，eventHub.on()有下面两种调用方式。
+
+   ```
+   export default class EntryAbility extends UIAbility {
+   
+   	onCreta(want: Want, launchParam: AbilityConstants.LaunchParam): void {
+   		//页面初始化
+   	
+           //获取UIAbility实例的上下文
+           let context = this.context
+           //获取eventHub
+           let eh = context.eventHub
+           //方式1.注册一个事件'event1'，绑定一个监听函数，处理逻辑
+           eh.on('event1', this.eventFunc)
+           //方式2.直接使用箭头函数处理
+           eh.on('event1', (data: string) => {
+               //处理逻辑
+           })
+   	}
+   	
+   	//event1对应的监听函数
+   	eventFunc(arg1: Context, arg2: Context) {
+   		//监听到事件参数
+   	}
+   }
+   ```
+
+2. 在页面中通过eventHub.emit()方法触发该事件，在触发事件的同时，根据需要传入参数信息。
+
+   ```
+   private context = getContext(this) as common.UIAbilityContext
+   
+   emitEvent1() {
+   	this.context.eventHub.emit('event1')//不带参数
+   	this.context.eventHub.emit('event1', 2002)//带参数一个
+   	this.context.eventHub.emit('event1', 2002, '这是一个eventHub emit发送的参数')//带2个参数
+   }
+   ```
+
+3. 在自定义事件'event1'使用完成后，可以根据需要调用eventHub.off()方法取消该事件的订阅
+
+   `this.context.eventHub.off(event1)`
+
+
+
+# UIAbility组件间交互
+
+在设备内的功能模块跳转时，会涉及启动特定的UIAbility，可以是应用内的其他Ability，或者其他
+
+应用的（如启动第三方支付UIAbility）
+
+
+
+## 启动应用内的UIAbility
+
+当一个应用内包含多个UIAbility时，存在应用内启动UIAbility的场景。
+
+
+
+- 假设应用中有两个UIAbility：EntryAbility和FuncAbility（可以在同一个Module中，也可以在不同的Module中），需要从EntryAbility的页面启动FuncAbility。
+
+  在EntryAbility中，通过调用startAbility()方法启动其他UIAbility
+
+  want为UIAbility实例启动的入口参数：
+
+  - bundleName：待启动应用的Bundle名
+  - abilityName：待启动的Ability名
+  - moduleName：待启动的UIAbility属于不同的Module时添加
+  - parameters：自定义信息参数
+
+  ```
+  startAbilityTest(){
+  	let want: Want = {
+  		deviceId: '',//空代表本设备
+  		bundleName: 'com.xxx.uiabilitytest'
+  		//moduleName: 'entry',//非必填
+  		abilityName: 'funcAbility',
+  		parameters: {//自定义参数
+  			info: '来自EntryAbility的信息'
+  		}
+  	}
+  	
+  	this.context.startAbility(want)
+  }
+  ```
+
+- 在FuncAbility的onCreate()或者onNewWant()生命周期回调中接受EntryAbility传递过来参数。
+
+  ```
+  let info = want.paramters?.info
+  ```
+
+- 在被拉起的FuncAbility中，可以通过获取传递过来的want参数的parameters来获取拉起方UIAbility的PID、Bundle Name等信息
+
+- 在FuncAbility业务完成之后，如果要停止当前UIAbility实例，在FuncAbility中拖过调用terminateSelf()方法实现。
+
+  调用terminateSelf()方法停用当前UIAbility实例时默认会保留该实例的快照(Snapshot)，即在最近任务列表中仍然能查看到该实例对应的任务。如果不需要保留该实例的快照。可以在其对应的UIAbility的module.json5配置文件中，将abilities标签的removeMissionAfterTerminate字段配置为true。
+
+- 关闭应用所有的UIAbility实例，可以调用ApplicationContext的killAllProcesses()方法实现关闭应用所有的进程。
+
+
+
+## 启动应用内的UIAbility并获取返回结果
+
+在一个EntryAbility启动另外一个FuncAbility时，希望在被启动的FuncAbility完成相关业务后，能将结果返回给调用方。
+
+
+
+- 在EntryAbility中，调用startAbilityForResult()接口启动FuncAbility，异步回调中的data用于接收FuncAbility停止自身后返回给EntryAbility的信息。
+
+  ```
+  this.context.startAbilityForResult(want).then((result) => {
+  	if(result.resultCode = 1111) {
+  		//如果与自定义返回值相同
+  		let info = result.want?.paramters?.info ?? '信息为空'
+  	}
+  })
+  ```
+
+- 在FuncAbility停止自身时，需要调用terminateSelfWithResult()方法，入参abilityResult为返回给EntryAbility的信息。
+
+  ```
+  let result: common.AbilityResult = {
+  	resultCode = 1111,//自定义返回值
+  	want: {
+  		deviceId: '',//空代表本设备
+  		bundleName: 'com.xxx.uiabilitytest',
+  		//module: 'entry', //非必填
+  		abilityName: 'funcAbility',
+  		parameters: {
+  			info: '来自FuncAbility结果返回的信息'
+  		}
+  	}
+  }
+  //终止并返回结果
+  this.context.terminateSelfWithResult(result, (err) => {
+  	if(err.code) {
+  		//返回结果出错
+  		return
+  	}
+  })
+  ```
+
+  
+
+
+
