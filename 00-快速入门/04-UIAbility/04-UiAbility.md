@@ -16,9 +16,7 @@
 2. 所有创建的页面都需要在`main_pages.json`配置，通过DevEco Studio创建的页面会自动配置。
 3. 手动创建的`page`文件到 `entry -> src -> main -> ets -> pages` 目录
 
-![](.\pic\01.png)
-
-
+![](./pic/01.png)
 
 # 页面间的跳转和数据传递
 
@@ -63,7 +61,7 @@ Router模块提供了两种实例模式，分别是Standard和Single。这两种
 
 ## 四个状态
 
-![生命周期四个状态](.\pic\02.png)
+![生命周期四个状态](./pic/02.png)
 
 1. Create：在应用加载过程中，UIAbility 实例创建完成时触发，系统会调用`onCreate()`回调。可以在回调中进行应用初始化操作，例如：变量定义、资源加载等，用于后续的UI界面展示。
 2. Foreground：表示 UIAbility 实例进入前台，用户可以与应用进行交互。在进入 Foreground 之前，系统会创建一个`WindowStage`，WindowStage 创建完成后会触发 `onWindowStageCreate()` 回调，可以在该回调中设置 UI 界面加载和订阅 WindowStage 的事件。
@@ -92,7 +90,7 @@ export default class EntryAbility extends UIAbility {
 
 UIAbility 实例创建完成之后，在进入 Foreground 之前，系统会创建一个 WindowStage。WindowStage 创建完成后会进入 onWindowStageCreate() 回调，可以在该回调中设置UI加载、设置WindowStage的事件订阅。
 
-![windowStage事件](.\pic\03.png)
+![windowStage事件](./pic/03.png)
 
 
 
