@@ -1,0 +1,10 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/testUi/TextPage",
+    "pages/testUi/ImagePage",
+    "pages/testUi/TextInputPage",
+    "pages/testUi/ListPage",
+    "pages/LoginPage"
+  ]
+}

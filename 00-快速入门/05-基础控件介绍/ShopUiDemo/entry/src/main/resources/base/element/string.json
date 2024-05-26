@@ -1,0 +1,112 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "ShopUiDemo"
+    },
+    {
+      "name": "login_text",
+      "value": "登录"
+    },
+    {
+      "name": "my_love",
+      "value": "我的最爱"
+    },
+    {
+      "name": "history_record",
+      "value": "历史记录"
+    },
+    {
+      "name": "message",
+      "value": "消息"
+    },
+    {
+      "name": "shopping_cart",
+      "value": "购物车"
+    },
+    {
+      "name": "my_goal",
+      "value": "我的目标"
+    },
+    {
+      "name": "group",
+      "value": "圈子"
+    },
+    {
+      "name": "favorites",
+      "value": "收藏"
+    },
+    {
+      "name": "recycle_bin",
+      "value": "回收站"
+    },
+    {
+      "name": "mainPage_top",
+      "value": "排行榜"
+    },
+    {
+      "name": "mainPage_text_top",
+      "value": "南京站，我们不见不散"
+    },
+    {
+      "name": "mainPage_new",
+      "value": "新品首发"
+    },
+    {
+      "name": "mainPage_text_new",
+      "value": "南京站，我们不见不散"
+    },
+    {
+      "name": "mainPage_brand",
+      "value": "大牌闪购"
+    },
+    {
+      "name": "mainPage_text_brand",
+      "value": "更多大牌"
+    },
+    {
+      "name": "mainPage_found",
+      "value": "发现好物"
+    },
+    {
+      "name": "mainPage_text_found",
+      "value": "南京站，我们不见不散"
+    },
+    {
+      "name": "setting_list_news",
+      "value": "推送通知"
+    },
+    {
+      "name": "setting_list_data",
+      "value": "数据管理"
+    },
+    {
+      "name": "setting_list_menu",
+      "value": "菜单设置"
+    },
+    {
+      "name": "setting_list_about",
+      "value": "关于我们"
+    },
+    {
+      "name": "setting_list_storage",
+      "value": "清除缓存"
+    },
+    {
+      "name": "setting_list_privacy",
+      "value": "隐私协议"
+    },
+    {
+      "name": "setting_toggle",
+      "value": "开关"
+    }
+  ]
+}
