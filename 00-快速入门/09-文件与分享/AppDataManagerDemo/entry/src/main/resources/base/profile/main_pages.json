@@ -1,0 +1,9 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/SqlPage",
+    "pages/PreferencesPage",
+    "pages/FilePage",
+    "pages/PhotoPage"
+  ]
+}
