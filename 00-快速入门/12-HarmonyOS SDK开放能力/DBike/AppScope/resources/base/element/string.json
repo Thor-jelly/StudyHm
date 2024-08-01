@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "DBike"
+    },
+    {
+      "name": "local_reason",
+      "value": "申请地理位置权限"
+    }
+  ]
+}
