@@ -1,4 +1,3 @@
-# 新
 # 快速入门
 
 [01-HarmonyOS介绍](https://github.com/Thor-jelly/StudyHm/blob/main/00-%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/01-HarmonyOS%E4%BB%8B%E7%BB%8D/01-HarmonyOS%E4%BB%8B%E7%BB%8D.md)  
